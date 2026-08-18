@@ -1,0 +1,1161 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GeoLimp - Monitoramento Georreferenciado de Limpeza de Canais</title>
+  
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  
+  <!-- Leaflet Draw CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
+  
+  <!-- Custom Fonts (Outfit) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="/src/style.css">
+</head>
+<body>
+
+  <div class="app-container">
+    
+    <!-- Sidebar Lateral -->
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="logo-icon">
+          <i data-lucide="map-pin"></i>
+        </div>
+        <div class="brand-text">
+          <h1>GeoLimp</h1>
+          <span>Monitoramento de Canais</span>
+        </div>
+      </div>
+      
+      <nav class="nav-menu">
+        <a href="#map" class="nav-item active" data-tab="map">
+          <i data-lucide="map"></i>
+          <span>Mapa Operacional</span>
+        </a>
+        <a href="#dashboard" class="nav-item" data-tab="dashboard">
+          <i data-lucide="layout-dashboard"></i>
+          <span>Dashboard</span>
+        </a>
+        <a href="#logs" class="nav-item" data-tab="logs">
+          <i data-lucide="clipboard-list"></i>
+          <span>Diário de Obras</span>
+        </a>
+        <a href="#photos" class="nav-item" data-tab="photos">
+          <i data-lucide="camera"></i>
+          <span>Galeria de Fotos</span>
+        </a>
+        <a href="#timeline" class="nav-item" data-tab="timeline">
+          <i data-lucide="hourglass"></i>
+          <span>Linha do Tempo</span>
+        </a>
+        <a href="#teams" class="nav-item" data-tab="teams">
+          <i data-lucide="users"></i>
+          <span>Equipes</span>
+        </a>
+        <a href="#reports" class="nav-item" data-tab="reports">
+          <i data-lucide="file-text"></i>
+          <span>Relatórios PDF</span>
+        </a>
+        <a href="#settings" class="nav-item" data-tab="settings">
+          <i data-lucide="settings"></i>
+          <span>Configurações</span>
+        </a>
+      </nav>
+      
+      <div class="sidebar-footer">
+        <div class="version">v1.2.0 • Antigravity</div>
+      </div>
+    </aside>
+    
+    <!-- Main Content Area -->
+    <div class="main-content">
+      
+      <!-- Top Header -->
+      <header class="top-header">
+        <button class="toggle-sidebar" id="toggle-sidebar">
+          <i data-lucide="menu"></i>
+        </button>
+        <div class="header-title">
+          <h2 id="current-tab-title">Mapa Operacional</h2>
+          <p id="current-tab-subtitle">Acompanhamento e edição georreferenciada de canais</p>
+        </div>
+        
+        <div class="header-actions">
+          <!-- Role/User Selector -->
+          <div class="role-selector-container">
+            <label for="user-role-select">Perfil:</label>
+            <select id="user-role-select" class="role-select">
+              <option value="admin">Administrador (Total)</option>
+              <option value="fiscal">Fiscal (Edição de Campo)</option>
+              <option value="visualizador">Visualizador (Consulta)</option>
+            </select>
+          </div>
+          
+          <div class="user-badge">
+            <span class="user-avatar" id="user-avatar">A</span>
+            <span class="user-name" id="user-name">Eng. Admin</span>
+          </div>
+        </div>
+      </header>
+      
+      <!-- Main Content Dynamic Panels -->
+      <div class="content-body">
+        
+        <!-- SECTION: MAP -->
+        <section id="map-tab" class="tab-panel active">
+          <div class="map-wrapper">
+            <!-- Map Instance Container -->
+            <div id="map-container"></div>
+            
+            <!-- Map Overlay Controls -->
+            <div class="map-overlay-panel map-layers-card">
+              <h3>Camadas</h3>
+              <div class="layer-selector">
+                <button class="layer-btn active" data-map-layer="standard">Padrão</button>
+                <button class="layer-btn" data-map-layer="satellite">Satélite</button>
+                <button class="layer-btn" data-map-layer="hybrid">Híbrido</button>
+              </div>
+              <div class="theme-selector mt-3">
+                <h3>Visualização Temática</h3>
+                <div class="theme-buttons">
+                  <button class="theme-btn active" id="theme-status">Status Obra</button>
+                  <button class="theme-btn" id="theme-productivity">Produtividade</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Paint/Status direct tool -->
+            <div class="map-overlay-panel map-paint-card" id="map-paint-card">
+              <h3>Pintar Status Direto</h3>
+              <div class="paint-options">
+                <button class="paint-option active" data-paint-status="none">
+                  <i data-lucide="mouse-pointer"></i> <span>Navegar</span>
+                </button>
+                <button class="paint-option" data-paint-status="nao-iniciado" style="--status-color: #64748b;">
+                  <span class="color-dot" style="background: #64748b;"></span> Não Iniciado
+                </button>
+                <button class="paint-option" data-paint-status="em-andamento" style="--status-color: #eab308;">
+                  <span class="color-dot" style="background: #eab308;"></span> Em Andamento
+                </button>
+                <button class="paint-option" data-paint-status="concluido" style="--status-color: #22c55e;">
+                  <span class="color-dot" style="background: #22c55e;"></span> Concluído
+                </button>
+                <button class="paint-option" data-paint-status="retrabalho" style="--status-color: #ef4444;">
+                  <span class="color-dot" style="background: #ef4444;"></span> Retrabalho
+                </button>
+                <button class="paint-option" data-paint-status="bloqueado" style="--status-color: #a855f7;">
+                  <span class="color-dot" style="background: #a855f7;"></span> Bloqueado
+                </button>
+              </div>
+            </div>
+
+            <!-- Map Files Actions (Import/Export) -->
+            <div class="map-overlay-panel map-file-card">
+              <h3>Ficheiros GIS</h3>
+              <div class="flex-column gap-2">
+                <button class="btn btn-secondary flex-center gap-1" id="btn-import-kml">
+                  <i data-lucide="upload"></i> Importar KML/KMZ
+                  <input type="file" id="kml-file-input" accept=".kml,.kmz" style="display:none;" />
+                </button>
+                <div class="dropdown">
+                  <button class="btn btn-primary flex-center gap-1 w-full" id="btn-export-dropdown">
+                    <i data-lucide="download"></i> Exportar Dados
+                  </button>
+                  <div class="dropdown-content">
+                    <a href="#" id="export-geojson">GeoJSON</a>
+                    <a href="#" id="export-kml">KML</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Time-Lapse Control bar -->
+            <div class="map-overlay-panel map-timelapse-card">
+              <div class="timelapse-header">
+                <h3>Time-Lapse de Evolução</h3>
+                <span class="timelapse-date" id="timelapse-date-display">-</span>
+              </div>
+              <div class="timelapse-controls">
+                <button class="btn-icon" id="btn-timelapse-play" title="Reproduzir Animação">
+                  <i data-lucide="play"></i>
+                </button>
+                <button class="btn-icon" id="btn-timelapse-stop" title="Parar" disabled>
+                  <i data-lucide="square"></i>
+                </button>
+                <input type="range" class="timelapse-slider" id="timelapse-range" min="0" max="10" value="0">
+                <span class="timelapse-speed" id="timelapse-speed-btn">1x</span>
+              </div>
+            </div>
+
+            <!-- Side details panel for selected stretch -->
+            <div class="map-detail-panel" id="stretch-detail-panel">
+              <div class="panel-header">
+                <h3 id="detail-title">Nome do Trecho</h3>
+                <button class="close-btn" id="close-detail-btn">&times;</button>
+              </div>
+              <div class="panel-body">
+                <div class="detail-section">
+                  <div class="status-indicator" id="detail-status-pill">Sem status</div>
+                  <div class="grid grid-2 mt-2">
+                    <div>
+                      <span class="label">Código:</span>
+                      <strong id="detail-code">-</strong>
+                    </div>
+                    <div>
+                      <span class="label">Responsável:</span>
+                      <strong id="detail-responsible">-</strong>
+                    </div>
+                    <div>
+                      <span class="label">Extensão:</span>
+                      <strong id="detail-extension">- m</strong>
+                    </div>
+                    <div>
+                      <span class="label">Área Est.:</span>
+                      <strong id="detail-area">- m²</strong>
+                    </div>
+                  </div>
+                  <div class="mt-2">
+                    <span class="label">Criado em:</span>
+                    <span id="detail-created">-</span>
+                  </div>
+                  <div class="mt-2">
+                    <span class="label">Observações:</span>
+                    <p id="detail-observations" class="obs-box">-</p>
+                  </div>
+                </div>
+
+                <div class="detail-section mt-4">
+                  <h4>Ações de Edição</h4>
+                  <div class="flex gap-2 mt-2">
+                    <button class="btn btn-secondary flex-1" id="btn-edit-stretch">Editar</button>
+                    <button class="btn btn-danger flex-1" id="btn-delete-stretch">Excluir</button>
+                  </div>
+                  <div class="flex gap-2 mt-2">
+                    <button class="btn btn-secondary flex-1" id="btn-split-stretch" title="Dividir trecho selecionado em dois">Dividir</button>
+                    <button class="btn btn-secondary flex-1" id="btn-merge-stretch" title="Unir com outro trecho">Unir</button>
+                  </div>
+                </div>
+
+                <div class="detail-section mt-4">
+                  <h4>Produção Acumulada</h4>
+                  <div class="grid grid-3 text-center mt-2">
+                    <div class="metric-card-mini">
+                      <span class="label">Área Limpa</span>
+                      <strong id="detail-prod-area">0 m²</strong>
+                    </div>
+                    <div class="metric-card-mini">
+                      <span class="label">Ext. Limpa</span>
+                      <strong id="detail-prod-ext">0 m</strong>
+                    </div>
+                    <div class="metric-card-mini">
+                      <span class="label">Resíduos</span>
+                      <strong id="detail-prod-resid">0 m³</strong>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="detail-section mt-4">
+                  <h4>Fotos Recentes</h4>
+                  <div class="recent-photos-grid" id="detail-photos-grid">
+                    <!-- Photo thumbnails go here -->
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Map Info Bar (Mouse Coords & Scale) -->
+            <div class="map-info-bar">
+              <span id="map-mouse-coordinates">Coords: - , -</span>
+            </div>
+          </div>
+        </section>
+        
+        <!-- SECTION: DASHBOARD -->
+        <section id="dashboard-tab" class="tab-panel">
+          <div class="dashboard-grid">
+            
+            <!-- Cards de Metas & Avanço Geral -->
+            <div class="dashboard-row flex gap-4 w-full">
+              
+              <!-- Card: Avanço Físico (Área) -->
+              <div class="card flex-1">
+                <div class="card-header">
+                  <h3>Avanço Físico por Área</h3>
+                  <i data-lucide="scaling" class="text-primary"></i>
+                </div>
+                <div class="card-body">
+                  <div class="progress-gauge-container">
+                    <div class="progress-big-number" id="dash-area-pct">0%</div>
+                    <div class="progress-bar-wrapper">
+                      <div class="progress-bar-fill" id="dash-area-bar" style="width: 0%;"></div>
+                    </div>
+                  </div>
+                  <div class="grid grid-3 mt-4 text-center">
+                    <div>
+                      <span class="label">Prevista</span>
+                      <h4 id="dash-area-total">0 m²</h4>
+                    </div>
+                    <div>
+                      <span class="label">Executada</span>
+                      <h4 id="dash-area-done" class="text-success">0 m²</h4>
+                    </div>
+                    <div>
+                      <span class="label">Restante</span>
+                      <h4 id="dash-area-remaining" class="text-warning">0 m²</h4>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Card: Avanço Físico (Extensão) -->
+              <div class="card flex-1">
+                <div class="card-header">
+                  <h3>Avanço Físico por Extensão</h3>
+                  <i data-lucide="trending-up" class="text-primary"></i>
+                </div>
+                <div class="card-body">
+                  <div class="progress-gauge-container">
+                    <div class="progress-big-number" id="dash-ext-pct">0%</div>
+                    <div class="progress-bar-wrapper">
+                      <div class="progress-bar-fill" id="dash-ext-bar" style="width: 0%;"></div>
+                    </div>
+                  </div>
+                  <div class="grid grid-3 mt-4 text-center">
+                    <div>
+                      <span class="label">Prevista</span>
+                      <h4 id="dash-ext-total">0 m</h4>
+                    </div>
+                    <div>
+                      <span class="label">Executada</span>
+                      <h4 id="dash-ext-done" class="text-success">0 m</h4>
+                    </div>
+                    <div>
+                      <span class="label">Restante</span>
+                      <h4 id="dash-ext-remaining" class="text-warning">0 m</h4>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Card: Resíduos Removidos -->
+              <div class="card flex-1">
+                <div class="card-header">
+                  <h3>Resíduos Removidos</h3>
+                  <i data-lucide="trash-2" class="text-secondary"></i>
+                </div>
+                <div class="card-body">
+                  <div class="grid grid-2 text-center mt-2">
+                    <div class="border-right">
+                      <span class="label">Total Coletado</span>
+                      <h2 id="dash-resid-bags" class="text-danger">0</h2>
+                      <span>sacos de lixo</span>
+                    </div>
+                    <div>
+                      <span class="label">Volume Estimado</span>
+                      <h2 id="dash-resid-vol" class="text-danger">0.0</h2>
+                      <span>m³ de resíduos</span>
+                    </div>
+                  </div>
+                  <div class="mt-4 pt-3 border-top flex justify-between align-center">
+                    <span class="label">Média Coleta Diária:</span>
+                    <strong id="dash-resid-avg-daily">0 sacos/dia</strong>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Segunda Linha do Dashboard: Prazos e Produtividade Metas -->
+            <div class="dashboard-row flex gap-4 w-full mt-4">
+              <!-- Card: Controle de Prazos -->
+              <div class="card flex-1">
+                <div class="card-header">
+                  <h3>Prazo da Obra</h3>
+                  <i data-lucide="calendar"></i>
+                </div>
+                <div class="card-body">
+                  <div class="grid grid-2 text-center">
+                    <div>
+                      <span class="label">Dias Trabalhados</span>
+                      <h2 id="dash-days-worked">0</h2>
+                    </div>
+                    <div>
+                      <span class="label">Dias Restantes</span>
+                      <h2 id="dash-days-left" class="text-primary">0</h2>
+                    </div>
+                  </div>
+                  <!-- Mini meta charts placeholder or simple text description -->
+                  <div class="mt-4 pt-2 text-center">
+                    <span class="label">Progresso Estimado vs Realizado</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Card: Configuração de Metas e Indicador Rápido -->
+              <div class="card flex-1">
+                <div class="card-header">
+                  <h3>Desempenho Geral vs Metas</h3>
+                  <i data-lucide="award"></i>
+                </div>
+                <div class="card-body flex-column justify-between h-full">
+                  <div class="goals-status-indicator-container">
+                    <div class="goal-indicator-badge" id="dash-goal-status-badge">
+                      <span class="dot"></span> <span class="text">Calculando...</span>
+                    </div>
+                  </div>
+                  <div class="grid grid-2 gap-2 mt-4 text-xs">
+                    <div class="goal-metric">
+                      <span class="label">Meta Área/Dia:</span>
+                      <strong id="dash-goal-area-val">0 m²</strong>
+                    </div>
+                    <div class="goal-metric">
+                      <span class="label">Meta Extensão/Dia:</span>
+                      <strong id="dash-goal-ext-val">0 m</strong>
+                    </div>
+                    <div class="goal-metric">
+                      <span class="label">Meta Sacos/Dia:</span>
+                      <strong id="dash-goal-bags-val">0 sacos</strong>
+                    </div>
+                    <div class="goal-metric">
+                      <span class="label">Meta Volume/Dia:</span>
+                      <strong id="dash-goal-vol-val">0 m³</strong>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Card: Recordes de Produtividade -->
+              <div class="card flex-1">
+                <div class="card-header">
+                  <h3>Recordes de Produção</h3>
+                  <i data-lucide="zap" class="text-warning"></i>
+                </div>
+                <div class="card-body flex-column gap-2">
+                  <div class="flex justify-between border-bottom pb-1">
+                    <span class="label">Melhor Produção Diária:</span>
+                    <div>
+                      <strong id="dash-best-day-val" class="text-success">0 m²</strong>
+                      <span class="text-muted block text-right" id="dash-best-day-date" style="font-size:10px;">-</span>
+                    </div>
+                  </div>
+                  <div class="flex justify-between pt-1">
+                    <span class="label">Pior Produção Diária:</span>
+                    <div>
+                      <strong id="dash-worst-day-val" class="text-danger">0 m²</strong>
+                      <span class="text-muted block text-right" id="dash-worst-day-date" style="font-size:10px;">-</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Gráficos no Dashboard -->
+            <div class="dashboard-row flex gap-4 w-full mt-4">
+              <!-- Curva S e Histórico de Avanço Físico -->
+              <div class="card flex-2">
+                <div class="card-header">
+                  <h3>Curva de Avanço Físico (Previsto vs Realizado)</h3>
+                </div>
+                <div class="card-body chart-container" style="position: relative; height:320px;">
+                  <canvas id="chart-curva-s"></canvas>
+                </div>
+              </div>
+
+              <!-- Produtividade Recente -->
+              <div class="card flex-1">
+                <div class="card-header">
+                  <h3>Produtividade por Período</h3>
+                </div>
+                <div class="card-body chart-container" style="position: relative; height:320px;">
+                  <canvas id="chart-produtividade-periodo"></canvas>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </section>
+        
+        <!-- SECTION: DAILY LOGS -->
+        <section id="logs-tab" class="tab-panel">
+          <div class="logs-layout flex gap-4">
+            
+            <!-- Formulário de Registro Diário -->
+            <div class="card w-350 shrink-0" id="daily-log-form-container">
+              <div class="card-header">
+                <h3 id="daily-log-form-title">Registrar Produção Diária</h3>
+                <i data-lucide="plus-circle" class="text-primary"></i>
+              </div>
+              <div class="card-body">
+                <form id="daily-log-form" class="flex-column gap-3">
+                  <input type="hidden" id="log-id" />
+                  
+                  <div class="form-group">
+                    <label for="log-date">Data da Atividade <span class="required">*</span></label>
+                    <input type="date" id="log-date" required />
+                  </div>
+                  
+                  <div class="form-group">
+                    <label for="log-stretch">Trecho Vinculado <span class="required">*</span></label>
+                    <select id="log-stretch" required>
+                      <option value="">Selecione um trecho...</option>
+                      <!-- Populated dynamically -->
+                    </select>
+                  </div>
+                  
+                  <div class="form-group">
+                    <label for="log-team">Equipe Responsável <span class="required">*</span></label>
+                    <select id="log-team" required>
+                      <option value="Equipe A">Equipe Alfa (Manual)</option>
+                      <option value="Equipe B">Equipe Beta (Manual)</option>
+                      <option value="Equipe C">Equipe Gama (Mecanizada)</option>
+                      <option value="Equipe D">Equipe Delta (Mista)</option>
+                    </select>
+                  </div>
+
+                  <div class="grid grid-2 gap-2">
+                    <div class="form-group">
+                      <label for="log-workers">Trabalhadores <span class="required">*</span></label>
+                      <input type="number" id="log-workers" min="1" value="5" required />
+                    </div>
+                    <div class="form-group">
+                      <label for="log-hours">Horas Trab. <span class="required">*</span></label>
+                      <input type="number" id="log-hours" min="0.5" step="0.5" value="8" required />
+                    </div>
+                  </div>
+
+                  <div class="grid grid-2 gap-2">
+                    <div class="form-group">
+                      <label for="log-start-time">Início</label>
+                      <input type="time" id="log-start-time" value="07:30" />
+                    </div>
+                    <div class="form-group">
+                      <label for="log-end-time">Término</label>
+                      <input type="time" id="log-end-time" value="16:30" />
+                    </div>
+                  </div>
+
+                  <div class="grid grid-2 gap-2">
+                    <div class="form-group">
+                      <label for="log-area">Área Limpa (m²) <span class="required">*</span></label>
+                      <input type="number" id="log-area" min="0" required />
+                    </div>
+                    <div class="form-group">
+                      <label for="log-ext">Extensão Limpa (m) <span class="required">*</span></label>
+                      <input type="number" id="log-ext" min="0" required />
+                    </div>
+                  </div>
+
+                  <div class="grid grid-2 gap-2">
+                    <div class="form-group">
+                      <label for="log-bags">Sacos de Lixo</label>
+                      <input type="number" id="log-bags" min="0" value="0" />
+                    </div>
+                    <div class="form-group">
+                      <label for="log-volume">Vol. Resíduos (m³)</label>
+                      <input type="number" id="log-volume" min="0" step="0.1" value="0" />
+                    </div>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="log-weather">Condições Climáticas</label>
+                    <select id="log-weather">
+                      <option value="Ensolarado">Ensolarado</option>
+                      <option value="Nublado">Nublado</option>
+                      <option value="Chuva Leve">Chuva Leve</option>
+                      <option value="Chuva Forte">Chuva Forte / Paralisado</option>
+                    </select>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="log-equipments">Equipamentos Utilizados</label>
+                    <input type="text" id="log-equipments" placeholder="Ex: Roçadeiras, Enxadas, Caminhão" />
+                  </div>
+
+                  <div class="form-group">
+                    <label for="log-status">Status da Atividade</label>
+                    <select id="log-status">
+                      <option value="em-andamento">Em Andamento</option>
+                      <option value="concluido">Concluído (Trecho Finalizado)</option>
+                      <option value="retrabalho">Necessita Retrabalho</option>
+                      <option value="bloqueado">Impedimento/Bloqueio</option>
+                    </select>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="log-obs">Observações de Campo</label>
+                    <textarea id="log-obs" rows="2" placeholder="Obstáculos, ocorrências, etc."></textarea>
+                  </div>
+
+                  <div class="flex gap-2 mt-2">
+                    <button type="submit" class="btn btn-primary flex-1" id="btn-save-log">Salvar Registro</button>
+                    <button type="button" class="btn btn-secondary" id="btn-reset-log-form">Limpar</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+
+            <!-- Tabela de Histórico de Diários -->
+            <div class="card flex-1">
+              <div class="card-header justify-between">
+                <h3>Histórico de Diários de Obra</h3>
+                <div class="flex gap-2">
+                  <input type="date" id="filter-log-date" class="form-control" />
+                  <select id="filter-log-stretch" class="form-control">
+                    <option value="">Filtrar trecho...</option>
+                  </select>
+                </div>
+              </div>
+              <div class="card-body overflow-x">
+                <table class="table" id="table-logs">
+                  <thead>
+                    <tr>
+                      <th>Data</th>
+                      <th>Trecho</th>
+                      <th>Equipe</th>
+                      <th>Área (m²)</th>
+                      <th>Ext. (m)</th>
+                      <th>Sacos</th>
+                      <th>Resíduos (m³)</th>
+                      <th>H. Trabalhadas</th>
+                      <th>Clima</th>
+                      <th>Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody id="logs-table-body">
+                    <!-- Logs list populated here -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+          </div>
+        </section>
+        
+        <!-- SECTION: GALLERY -->
+        <section id="photos-tab" class="tab-panel">
+          <div class="photos-layout flex-column gap-4">
+            
+            <!-- Upload Panel -->
+            <div class="card" id="photo-upload-panel">
+              <div class="card-header">
+                <h3>Anexar Novas Evidências Fotográficas</h3>
+                <i data-lucide="image" class="text-primary"></i>
+              </div>
+              <div class="card-body">
+                <form id="photo-form" class="flex gap-4 align-end flex-wrap">
+                  
+                  <div class="form-group" style="flex: 1; min-width: 200px;">
+                    <label for="photo-stretch">Trecho Associado <span class="required">*</span></label>
+                    <select id="photo-stretch" required>
+                      <option value="">Selecione um trecho...</option>
+                      <!-- Populated dynamically -->
+                    </select>
+                  </div>
+                  
+                  <div class="form-group" style="flex: 1; min-width: 150px;">
+                    <label for="photo-type">Etapa da Foto <span class="required">*</span></label>
+                    <select id="photo-type" required>
+                      <option value="antes">Antes da Execução</option>
+                      <option value="durante">Durante a Execução</option>
+                      <option value="depois">Após a Execução</option>
+                    </select>
+                  </div>
+                  
+                  <div class="form-group" style="flex: 1; min-width: 200px;">
+                    <label for="photo-desc">Descrição Opcional</label>
+                    <input type="text" id="photo-desc" placeholder="Ex: Acúmulo de lixo, capina concluída..." />
+                  </div>
+
+                  <div class="form-group" style="flex: 1; min-width: 200px;">
+                    <label for="photo-file">Selecionar Imagem <span class="required">*</span></label>
+                    <input type="file" id="photo-file" accept="image/*" required />
+                  </div>
+
+                  <button type="submit" class="btn btn-primary flex-center gap-1 shrink-0" id="btn-save-photo">
+                    <i data-lucide="upload-cloud"></i> Anexar Foto
+                  </button>
+                </form>
+              </div>
+            </div>
+
+            <!-- Gallery Container -->
+            <div class="card flex-1">
+              <div class="card-header justify-between">
+                <h3>Galeria Fotográfica Operacional</h3>
+                <div class="flex gap-2">
+                  <select id="filter-photo-stretch" class="form-control">
+                    <option value="">Filtrar por trecho...</option>
+                  </select>
+                  <select id="filter-photo-type" class="form-control">
+                    <option value="">Todas as etapas</option>
+                    <option value="antes">Antes</option>
+                    <option value="durante">Durante</option>
+                    <option value="depois">Depois</option>
+                  </select>
+                </div>
+              </div>
+              <div class="card-body">
+                <div class="gallery-grid" id="gallery-container">
+                  <!-- Photos populated here -->
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </section>
+        
+        <!-- SECTION: TIMELINE -->
+        <section id="timeline-tab" class="tab-panel">
+          <div class="timeline-layout flex gap-4">
+            
+            <!-- Filters Card -->
+            <div class="card w-250 shrink-0">
+              <div class="card-header">
+                <h3>Filtros da Linha</h3>
+                <i data-lucide="filter"></i>
+              </div>
+              <div class="card-body">
+                <div class="flex-column gap-3">
+                  <div class="form-group">
+                    <label for="timeline-filter-team">Equipe:</label>
+                    <select id="timeline-filter-team" class="form-control">
+                      <option value="">Todas as equipes</option>
+                      <option value="Equipe A">Equipe Alfa</option>
+                      <option value="Equipe B">Equipe Beta</option>
+                      <option value="Equipe C">Equipe Gama</option>
+                      <option value="Equipe D">Equipe Delta</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label for="timeline-filter-stretch">Trecho:</label>
+                    <select id="timeline-filter-stretch" class="form-control">
+                      <option value="">Todos os trechos</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label for="timeline-filter-status">Status do Registro:</label>
+                    <select id="timeline-filter-status" class="form-control">
+                      <option value="">Todos os status</option>
+                      <option value="em-andamento">Em Andamento</option>
+                      <option value="concluido">Concluído</option>
+                      <option value="retrabalho">Retrabalho</option>
+                      <option value="bloqueado">Bloqueado</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label for="timeline-filter-date-start">De:</label>
+                    <input type="date" id="timeline-filter-date-start" class="form-control" />
+                  </div>
+                  <div class="form-group">
+                    <label for="timeline-filter-date-end">Até:</label>
+                    <input type="date" id="timeline-filter-date-end" class="form-control" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Timeline Container -->
+            <div class="card flex-1">
+              <div class="card-header">
+                <h3>Histórico de Evolução Cronológica</h3>
+                <i data-lucide="clock" class="text-primary"></i>
+              </div>
+              <div class="card-body scroll-y" style="max-height: 600px;">
+                <div class="timeline" id="timeline-container">
+                  <!-- Timeline items populated here -->
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </section>
+        
+        <!-- SECTION: TEAMS -->
+        <section id="teams-tab" class="tab-panel">
+          <div class="teams-layout flex-column gap-4">
+            
+            <div class="flex gap-4">
+              <!-- Comparação Gráfica -->
+              <div class="card flex-2">
+                <div class="card-header">
+                  <h3>Produção Acumulada por Equipe (Área e Extensão)</h3>
+                </div>
+                <div class="card-body chart-container" style="position: relative; height:320px;">
+                  <canvas id="chart-teams-comparison"></canvas>
+                </div>
+              </div>
+              
+              <!-- Produtividade Comparada -->
+              <div class="card flex-1">
+                <div class="card-header">
+                  <h3>Eficiência Média (m²/Homem-Hora)</h3>
+                </div>
+                <div class="card-body chart-container" style="position: relative; height:320px;">
+                  <canvas id="chart-teams-efficiency"></canvas>
+                </div>
+              </div>
+            </div>
+
+            <!-- Grid de Equipes Metas -->
+            <div class="card">
+              <div class="card-header">
+                <h3>Quadro de Rendimento das Equipes</h3>
+              </div>
+              <div class="card-body">
+                <table class="table" id="table-teams-summary">
+                  <thead>
+                    <tr>
+                      <th>Equipe</th>
+                      <th>Total Área Limpa (m²)</th>
+                      <th>Total Extensão (m)</th>
+                      <th>Total Resíduos (m³)</th>
+                      <th>Total H. Trabalhadas</th>
+                      <th>Rendimento Médio (m²/h)</th>
+                      <th>Desempenho Geral</th>
+                    </tr>
+                  </thead>
+                  <tbody id="teams-summary-tbody">
+                    <!-- Dynamic team stats row -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+          </div>
+        </section>
+        
+        <!-- SECTION: REPORTS -->
+        <section id="reports-tab" class="tab-panel">
+          <div class="reports-layout flex gap-4">
+            
+            <!-- Configurações do Relatório -->
+            <div class="card w-300 shrink-0">
+              <div class="card-header">
+                <h3>Parâmetros do Relatório</h3>
+                <i data-lucide="sliders"></i>
+              </div>
+              <div class="card-body flex-column gap-3">
+                <div class="form-group">
+                  <label for="rep-title">Título do Documento</label>
+                  <input type="text" id="rep-title" value="Relatório Técnico de Evolução de Obra" />
+                </div>
+                <div class="form-group">
+                  <label for="rep-obra-id">Identificação da Obra</label>
+                  <input type="text" id="rep-obra-id" value="Limpeza de Canais Urbanos - Setor Norte" />
+                </div>
+                <div class="form-group">
+                  <label for="rep-responsible">Responsável Técnico</label>
+                  <input type="text" id="rep-responsible" value="Eng. Gabriel Santos - CREA/SP 506.000" />
+                </div>
+                <div class="form-group">
+                  <label>Período de Comparação Temporal</label>
+                  <div class="grid grid-2 gap-1 mt-1">
+                    <div>
+                      <span class="label">Data A:</span>
+                      <input type="date" id="rep-compare-start" />
+                    </div>
+                    <div>
+                      <span class="label">Data B:</span>
+                      <input type="date" id="rep-compare-end" />
+                    </div>
+                  </div>
+                </div>
+                
+                <div class="flex-column gap-2 mt-4">
+                  <button class="btn btn-primary flex-center gap-1 w-full" id="btn-generate-pdf">
+                    <i data-lucide="file-pdf"></i> Gerar Relatório Executivo
+                  </button>
+                  <button class="btn btn-secondary flex-center gap-1 w-full" id="btn-export-evolution-map">
+                    <i data-lucide="image"></i> Exportar Imagem de Avanço
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Preview do Relatório -->
+            <div class="card flex-1">
+              <div class="card-header justify-between">
+                <h3>Visualização Prévia do Relatório</h3>
+                <span class="badge" id="report-date-badge">Data de Emissão: 17/08/2026</span>
+              </div>
+              <div class="card-body report-preview-wrapper scroll-y" style="max-height: 600px; background: #0f172a;">
+                
+                <!-- Inner printable report sheet -->
+                <div class="report-sheet" id="report-printable-area">
+                  <div class="report-header">
+                    <div class="flex justify-between align-center">
+                      <div>
+                        <h2 class="text-primary text-2xl font-bold" id="rep-preview-title">Relatório Técnico de Evolução de Obra</h2>
+                        <p class="text-muted text-sm" id="rep-preview-obra">Limpeza de Canais Urbanos - Setor Norte</p>
+                      </div>
+                      <div class="text-right">
+                        <span class="text-xs text-muted block">Emitido em</span>
+                        <strong id="rep-preview-date">17/08/2026</strong>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="report-divider"></div>
+
+                  <div class="grid grid-4 gap-4 text-center">
+                    <div class="rep-kpi-card">
+                      <span class="label">Área Concluída</span>
+                      <h3 class="text-success" id="rep-preview-kpi-area">0 m²</h3>
+                      <span class="text-xs text-muted" id="rep-preview-kpi-area-pct">(0% do previsto)</span>
+                    </div>
+                    <div class="rep-kpi-card">
+                      <span class="label">Extensão Concluída</span>
+                      <h3 class="text-success" id="rep-preview-kpi-ext">0 m</h3>
+                      <span class="text-xs text-muted" id="rep-preview-kpi-ext-pct">(0% do previsto)</span>
+                    </div>
+                    <div class="rep-kpi-card">
+                      <span class="label">Resíduos Removidos</span>
+                      <h3 class="text-danger" id="rep-preview-kpi-resid">0.0 m³</h3>
+                      <span class="text-xs text-muted" id="rep-preview-kpi-resid-bags">(0 sacos)</span>
+                    </div>
+                    <div class="rep-kpi-card">
+                      <span class="label">Produtividade Acum.</span>
+                      <h3 class="text-warning" id="rep-preview-kpi-prod">0.0 m²/h-h</h3>
+                      <span class="text-xs text-muted">Média Operacional</span>
+                    </div>
+                  </div>
+
+                  <h4 class="mt-4 border-bottom pb-1 text-primary">Comparativo Temporal (Período Selecionado)</h4>
+                  <div class="grid grid-2 gap-4 mt-2">
+                    <div class="comparison-summary-card">
+                      <h5>Resumo Comparativo de Produtividade</h5>
+                      <table class="simple-table w-full text-xs">
+                        <thead>
+                          <tr>
+                            <th>Métrica</th>
+                            <th>Data Inicial (A)</th>
+                            <th>Data Final (B)</th>
+                            <th>Evolução / Delta</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr>
+                            <td>Área Limpa</td>
+                            <td id="comp-area-a">0 m²</td>
+                            <td id="comp-area-b">0 m²</td>
+                            <td id="comp-area-delta" class="text-success">+0 m²</td>
+                          </tr>
+                          <tr>
+                            <td>Extensão</td>
+                            <td id="comp-ext-a">0 m</td>
+                            <td id="comp-ext-b">0 m</td>
+                            <td id="comp-ext-delta" class="text-success">+0 m</td>
+                          </tr>
+                          <tr>
+                            <td>Resíduos</td>
+                            <td id="comp-vol-a">0.0 m³</td>
+                            <td id="comp-vol-b">0.0 m³</td>
+                            <td id="comp-vol-delta" class="text-danger">+0.0 m³</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                    
+                    <div class="comparison-maps-container">
+                      <h5>Visualização Lado a Lado</h5>
+                      <div class="flex gap-2">
+                        <div class="comp-map-preview flex-1" id="comp-map-a-preview">
+                          <span class="map-date-label" id="lbl-comp-date-a">Data A</span>
+                          <!-- Mini map snapshot or Canvas drawing -->
+                          <div class="mini-map-stub" id="mini-map-a">Sem Dados</div>
+                        </div>
+                        <div class="comp-map-preview flex-1" id="comp-map-b-preview">
+                          <span class="map-date-label" id="lbl-comp-date-b">Data B</span>
+                          <!-- Mini map snapshot or Canvas drawing -->
+                          <div class="mini-map-stub" id="mini-map-b">Sem Dados</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <h4 class="mt-4 border-bottom pb-1 text-primary">Registro Fotográfico de Evidências</h4>
+                  <div class="report-photos-grid mt-2" id="rep-preview-photos">
+                    <!-- Render active evidence pictures before/after here -->
+                  </div>
+
+                  <div class="report-footer text-xs text-muted flex justify-between mt-6 pt-4 border-top">
+                    <span id="rep-preview-footer-resp">Resp. Técnico: Eng. Gabriel Santos</span>
+                    <span>GeoLimp Monitoramento Georreferenciado</span>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+          </div>
+        </section>
+        
+        <!-- SECTION: SETTINGS -->
+        <section id="settings-tab" class="tab-panel">
+          <div class="settings-layout flex gap-4">
+            
+            <!-- Configurações de Metas -->
+            <div class="card flex-1">
+              <div class="card-header">
+                <h3>Configuração de Metas Operacionais</h3>
+                <i data-lucide="target" class="text-primary"></i>
+              </div>
+              <div class="card-body">
+                <form id="settings-goals-form" class="flex-column gap-4 max-w-400">
+                  <p class="text-sm text-muted">As metas definidas aqui servem de referência para o Dashboard e para o cálculo dos indicadores de produtividade diária (🟢 Acima, 🟡 Aceitável, 🔴 Abaixo).</p>
+                  
+                  <div class="form-group">
+                    <label for="set-goal-area">Meta de Área Limpa por Dia (m²)</label>
+                    <input type="number" id="set-goal-area" min="1" value="200" required />
+                  </div>
+                  
+                  <div class="form-group">
+                    <label for="set-goal-ext">Meta de Extensão Limpa por Dia (m)</label>
+                    <input type="number" id="set-goal-ext" min="1" value="50" required />
+                  </div>
+                  
+                  <div class="form-group">
+                    <label for="set-goal-bags">Meta de Sacos de Lixo Recolhidos por Dia</label>
+                    <input type="number" id="set-goal-bags" min="1" value="80" required />
+                  </div>
+                  
+                  <div class="form-group">
+                    <label for="set-goal-vol">Meta de Volume de Resíduos por Dia (m³)</label>
+                    <input type="number" id="set-goal-vol" min="1" step="0.5" value="12" required />
+                  </div>
+
+                  <div class="flex gap-2">
+                    <button type="submit" class="btn btn-primary" id="btn-save-settings">Salvar Configurações</button>
+                    <button type="button" class="btn btn-secondary" id="btn-restore-defaults">Restaurar Padrões</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+
+            <!-- Gestão e Controle de Usuários (Simulado) -->
+            <div class="card flex-1">
+              <div class="card-header">
+                <h3>Gestão de Usuários da Obra</h3>
+                <i data-lucide="shield-check" class="text-secondary"></i>
+              </div>
+              <div class="card-body">
+                <div class="flex-column gap-3">
+                  <p class="text-sm text-muted">Controle administrativo das permissões vinculadas a cada perfil de acesso.</p>
+                  
+                  <div class="user-role-permission-card flex align-start gap-3 border p-3 rounded">
+                    <i data-lucide="user-cog" class="text-primary text-xl mt-1"></i>
+                    <div>
+                      <strong>Administrador</strong>
+                      <span class="block text-xs text-muted mt-1">Permissão total no sistema. Pode configurar metas, excluir registros, desenhar, fundir, dividir trechos e exportar arquivos GIS e PDF.</span>
+                    </div>
+                  </div>
+
+                  <div class="user-role-permission-card flex align-start gap-3 border p-3 rounded">
+                    <i data-lucide="edit" class="text-warning text-xl mt-1"></i>
+                    <div>
+                      <strong>Fiscal de Campo</strong>
+                      <span class="block text-xs text-muted mt-1">Permissão de edição restrita a registros de campo. Pode preencher diários de obras, alterar status operacionais e anexar fotos. Não pode configurar metas, excluir trechos ou alterar dados estruturais.</span>
+                    </div>
+                  </div>
+
+                  <div class="user-role-permission-card flex align-start gap-3 border p-3 rounded">
+                    <i data-lucide="eye" class="text-success text-xl mt-1"></i>
+                    <div>
+                      <strong>Visualizador / Gestor</strong>
+                      <span class="block text-xs text-muted mt-1">Permissão de leitura apenas. Pode visualizar o mapa operacional, filtros, linha do tempo, painéis estatísticos e exportar relatórios PDF. Bloqueado de fazer qualquer tipo de modificação.</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: REGISTER / EDIT STRETCH -->
+  <div class="modal-backdrop" id="stretch-modal">
+    <div class="modal-container w-450">
+      <div class="modal-header">
+        <h3 id="stretch-modal-title">Cadastrar Novo Trecho</h3>
+        <button class="close-btn" id="close-stretch-modal-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="stretch-form" class="flex-column gap-3">
+          <input type="hidden" id="stretch-id" />
+          
+          <div class="form-group">
+            <label for="stretch-name">Nome do Trecho <span class="required">*</span></label>
+            <input type="text" id="stretch-name" required placeholder="Ex: Canal da Av. Principal - Trecho 01" />
+          </div>
+
+          <div class="form-group">
+            <label for="stretch-code">Código do Trecho <span class="required">*</span></label>
+            <input type="text" id="stretch-code" required placeholder="Ex: CN-PR-01" />
+          </div>
+
+          <div class="grid grid-2 gap-2">
+            <div class="form-group">
+              <label for="stretch-extension">Extensão Estimada (m)</label>
+              <input type="number" id="stretch-extension" min="1" placeholder="Calculado do mapa" />
+            </div>
+            <div class="form-group">
+              <label for="stretch-area">Área Estimada (m²)</label>
+              <input type="number" id="stretch-area" min="1" placeholder="Calculado do mapa" />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="stretch-responsible">Responsável Técnico <span class="required">*</span></label>
+            <input type="text" id="stretch-responsible" required placeholder="Ex: Eng. Gabriel" />
+          </div>
+
+          <div class="form-group">
+            <label for="stretch-observations">Observações de Campo</label>
+            <textarea id="stretch-observations-input" rows="3" placeholder="Restrições de acesso, largura média, etc."></textarea>
+          </div>
+
+          <div class="flex justify-end gap-2 mt-4">
+            <button type="button" class="btn btn-secondary" id="btn-cancel-stretch">Cancelar</button>
+            <button type="submit" class="btn btn-primary" id="btn-save-stretch-data">Salvar Trecho</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST NOTIFICATIONS -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  
+  <!-- Leaflet Draw JS -->
+  <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
+  
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  
+  <!-- jsPDF -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  
+  <!-- html2canvas -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+  <!-- App Entry Scripts -->
+  <script type="module" src="/src/js/main.js"></script>
+</body>
+</html>
