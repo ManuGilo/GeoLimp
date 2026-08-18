@@ -246,7 +246,7 @@ export async function loadStretchesOnMap() {
       if (paintStatus !== 'none') {
         // Direct Paint Tool is active
         if (role === 'visualizador') {
-          showToast('Permissão Negada: Apenas Fiscais/Admins podem alterar status.', 'error');
+          showToast('Permissão Negada: Visualizadores não podem alterar status.', 'error');
           return;
         }
 
@@ -289,7 +289,7 @@ export async function loadStretchesOnMap() {
           });
         });
       } else {
-        // Standard Detail view
+        // Standard Detail view & Auto Zoom Fit
         openStretchDetailsPanel(stretch);
       }
     });
@@ -299,6 +299,32 @@ export async function loadStretchesOnMap() {
 
   // Render layer manager list overlay
   renderLayerManagerList(stretches);
+}
+
+/**
+ * Fits map view and zoom bounds smoothly to frame a given stretch/channel geometry.
+ * @param {Object} stretch 
+ */
+export function zoomToStretch(stretch) {
+  if (!mapInstance || !stretch || !stretch.coordinates || stretch.coordinates.length === 0) return;
+
+  const latlngs = stretch.coordinates.map(c => [c[0], c[1]]);
+  
+  if (latlngs.length === 1) {
+    mapInstance.setView(latlngs[0], 17, { animate: true });
+    return;
+  }
+
+  const bounds = L.latLngBounds(latlngs);
+  if (bounds.isValid()) {
+    mapInstance.fitBounds(bounds, {
+      paddingTopLeft: [50, 50],
+      paddingBottomRight: [360, 50], // Account for detail side panel on the right
+      maxZoom: 18,
+      animate: true,
+      duration: 0.8
+    });
+  }
 }
 
 /**
@@ -637,6 +663,7 @@ function handleKmlImport(e) {
       const docStyles = extractKmlStyles(xmlDoc);
 
       let importCount = 0;
+      let allImportedCoords = [];
       
       for (let i = 0; i < placemarks.length; i++) {
         const placemark = placemarks[i];
@@ -691,6 +718,7 @@ function handleKmlImport(e) {
                 const lat = parseFloat(parts[1]);
                 if (!isNaN(lat) && !isNaN(lng)) {
                   coordinates.push([lat, lng]);
+                  allImportedCoords.push([lat, lng]);
                 }
               }
             });
@@ -741,11 +769,17 @@ function handleKmlImport(e) {
       loadStretchesOnMap();
       refreshAllViews();
       
-      // Auto focus on the imported elements if any
-      const stretches = await db.getAll('trechos');
-      if (stretches.length > 0) {
-        const last = stretches[stretches.length - 1];
-        mapInstance.panTo([last.coordinates[0][0], last.coordinates[0][1]]);
+      // Auto fit map zoom to frame all imported KML geometries perfectly
+      if (allImportedCoords.length > 0 && mapInstance) {
+        const bounds = L.latLngBounds(allImportedCoords);
+        if (bounds.isValid()) {
+          mapInstance.fitBounds(bounds, {
+            padding: [60, 60],
+            maxZoom: 17,
+            animate: true,
+            duration: 0.8
+          });
+        }
       }
     } catch (err) {
       console.error(err);
@@ -875,6 +909,9 @@ async function exportGisData(format) {
 export async function openStretchDetailsPanel(stretch) {
   selectedStretch = stretch;
   
+  // Fit map zoom to frame the selected stretch geometry
+  zoomToStretch(stretch);
+
   // Highlight active layer on map
   loadStretchesOnMap();
 
