@@ -195,6 +195,18 @@
               </div>
             </div>
 
+            <!-- Layer Manager / Stretches Toggle Card Overlay -->
+            <div class="map-overlay-panel map-stretches-card" id="map-stretches-card">
+              <div class="flex justify-between align-center mb-2">
+                <h3>Gerenciar Áreas & Trechos</h3>
+                <button class="btn btn-secondary btn-sm" id="btn-toggle-all-stretches" title="Alternar visibilidade de todas as áreas">Ativar/Desativar Todos</button>
+              </div>
+              <input type="text" id="layer-search-input" placeholder="🔍 Buscar trecho/área..." class="layer-search-box" />
+              <div class="stretches-list-container" id="stretches-list-container">
+                <!-- Dynamically populated stretch/layer items with toggles and colors -->
+              </div>
+            </div>
+
             <!-- Time-Lapse Control bar -->
             <div class="map-overlay-panel map-timelapse-card">
               <div class="timelapse-header">
@@ -240,9 +252,15 @@
                       <strong id="detail-area">- m²</strong>
                     </div>
                   </div>
-                  <div class="mt-2">
-                    <span class="label">Criado em:</span>
-                    <span id="detail-created">-</span>
+                  <div class="mt-2 flex align-center justify-between">
+                    <div>
+                      <span class="label">Criado em:</span>
+                      <span id="detail-created">-</span>
+                    </div>
+                    <div class="flex align-center gap-1">
+                      <span class="label mb-0">Cor no Mapa:</span>
+                      <input type="color" id="detail-color-picker" title="Alterar cor da área/trecho" style="border:none; background:none; cursor:pointer; width:30px; height:30px;" />
+                    </div>
                   </div>
                   <div class="mt-2">
                     <span class="label">Observações:</span>

@@ -1,4 +1,4 @@
-﻿/* ==========================================================================
+/* ==========================================================================
    GeoLimp - Map Management and GIS Logic (Leaflet.js)
    ========================================================================== */
 
@@ -212,6 +212,9 @@ export async function loadStretchesOnMap() {
   const diaries = await db.getAll('diarios');
 
   stretches.forEach((stretch) => {
+    // Hide layer if user turned off visibility in Layer Manager
+    if (stretch.visible === false) return;
+
     const latlngs = stretch.coordinates.map(coord => L.latLng(coord[0], coord[1]));
     let mapLayer = null;
     const color = getStyleColor(stretch, diaries);
@@ -221,7 +224,7 @@ export async function loadStretchesOnMap() {
       weight: selectedStretch && selectedStretch.id === stretch.id ? 7 : 5,
       opacity: 0.85,
       fillColor: color,
-      fillOpacity: 0.35
+      fillOpacity: 0.4
     };
 
     if (stretch.coordinates.length > 2 && stretch.type !== 'polyline') {
@@ -243,7 +246,7 @@ export async function loadStretchesOnMap() {
       if (paintStatus !== 'none') {
         // Direct Paint Tool is active
         if (role === 'visualizador') {
-          showToast('PermissÃ£o Negada: Apenas Fiscais/Admins podem alterar status.', 'error');
+          showToast('Permissão Negada: Apenas Fiscais/Admins podem alterar status.', 'error');
           return;
         }
 
@@ -293,6 +296,77 @@ export async function loadStretchesOnMap() {
 
     mapLayer.addTo(currentLayerGroup);
   });
+
+  // Render layer manager list overlay
+  renderLayerManagerList(stretches);
+}
+
+/**
+ * Renders the interactive Layer Manager list (stretches toggle & color pickers)
+ */
+function renderLayerManagerList(stretches) {
+  const container = document.getElementById('stretches-list-container');
+  if (!container) return;
+
+  const searchInput = document.getElementById('layer-search-input');
+  const filterQuery = searchInput ? searchInput.value.toLowerCase().trim() : '';
+
+  const filtered = stretches.filter(s => {
+    if (!filterQuery) return true;
+    return (s.name && s.name.toLowerCase().includes(filterQuery)) ||
+           (s.code && s.code.toLowerCase().includes(filterQuery));
+  });
+
+  container.innerHTML = '';
+
+  if (filtered.length === 0) {
+    container.innerHTML = '<span class="text-xs text-muted py-2 text-center block">Nenhuma área/trecho encontrado.</span>';
+    return;
+  }
+
+  filtered.forEach((stretch) => {
+    const item = document.createElement('div');
+    item.className = 'stretch-layer-item';
+
+    const isVisible = stretch.visible !== false;
+    const currentColor = stretch.color || STATUS_COLORS[stretch.status] || '#0ea5e9';
+
+    item.innerHTML = `
+      <input type="checkbox" class="stretch-toggle-checkbox" data-id="${stretch.id}" ${isVisible ? 'checked' : ''} title="Ativar/Desativar no Mapa" />
+      <input type="color" class="stretch-color-picker" data-id="${stretch.id}" value="${currentColor}" title="Alterar Cor" />
+      <button class="stretch-title-btn" data-id="${stretch.id}" title="Centralizar no mapa e ver detalhes">${stretch.code} - ${stretch.name}</button>
+    `;
+
+    // Checkbox visibility toggle listener
+    const checkbox = item.querySelector('.stretch-toggle-checkbox');
+    checkbox.addEventListener('change', async (e) => {
+      stretch.visible = e.target.checked;
+      await db.put('trechos', stretch);
+      loadStretchesOnMap();
+    });
+
+    // Color picker listener
+    const colorPicker = item.querySelector('.stretch-color-picker');
+    colorPicker.addEventListener('change', async (e) => {
+      stretch.color = e.target.value;
+      await db.put('trechos', stretch);
+      loadStretchesOnMap();
+      if (selectedStretch && selectedStretch.id === stretch.id) {
+        selectedStretch.color = stretch.color;
+      }
+    });
+
+    // Title click -> center map & open detail panel
+    const titleBtn = item.querySelector('.stretch-title-btn');
+    titleBtn.addEventListener('click', () => {
+      if (stretch.coordinates && stretch.coordinates.length > 0) {
+        mapInstance.panTo([stretch.coordinates[0][0], stretch.coordinates[0][1]]);
+      }
+      openStretchDetailsPanel(stretch);
+    });
+
+    container.appendChild(item);
+  });
 }
 
 /**
@@ -300,11 +374,11 @@ export async function loadStretchesOnMap() {
  */
 function getStyleColor(stretch, diaries) {
   if (activeTheme === 'status') {
-    return STATUS_COLORS[stretch.status] || '#64748b';
+    return stretch.color || STATUS_COLORS[stretch.status] || '#64748b';
   } else {
-    // Theme is 'productivity' - Calculate based on average productivity mÂ²/hour from diaries
+    // Theme is 'productivity' - Calculate based on average productivity m²/hour from diaries
     const stretchLogs = diaries.filter(log => log.stretchId === stretch.id && log.area > 0);
-    if (stretchLogs.length === 0) return '#64748b'; // Gray (No production logged yet)
+    if (stretchLogs.length === 0) return stretch.color || '#64748b';
 
     let totalArea = 0;
     let totalManHours = 0;
@@ -313,10 +387,8 @@ function getStyleColor(stretch, diaries) {
       totalManHours += (log.workers * log.hours);
     });
 
-    const efficiency = totalArea / (totalManHours || 1); // mÂ²/man-hour
+    const efficiency = totalArea / (totalManHours || 1);
 
-    // Compare with base efficiency targets (200mÂ² / 5 workers / 8 hours = 5 mÂ²/man-hour as 100%)
-    // >6mÂ²/h-h = high, 4.5-6 = good, 3-4.5 = media, 1.5-3 = low, <1.5 = critical
     if (efficiency >= 6) return PRODUCTIVITY_COLORS.alta;
     if (efficiency >= 4.5) return PRODUCTIVITY_COLORS.boa;
     if (efficiency >= 3.0) return PRODUCTIVITY_COLORS.media;
@@ -432,10 +504,114 @@ function setupOverlayListeners() {
   document.getElementById('btn-split-stretch').addEventListener('click', handleSplitAction);
   document.getElementById('btn-merge-stretch').addEventListener('click', handleMergeAction);
 
+  // Layer Manager Search & Toggle All listeners
+  const toggleAllBtn = document.getElementById('btn-toggle-all-stretches');
+  if (toggleAllBtn) {
+    toggleAllBtn.addEventListener('click', async () => {
+      const stretches = await db.getAll('trechos');
+      if (stretches.length === 0) return;
+      
+      const hasVisible = stretches.some(s => s.visible !== false);
+      const newVisibleState = !hasVisible;
+      
+      for (const s of stretches) {
+        s.visible = newVisibleState;
+        await db.put('trechos', s);
+      }
+      
+      loadStretchesOnMap();
+      showToast(newVisibleState ? 'Todas as áreas ativadas no mapa.' : 'Todas as áreas desativadas no mapa.', 'info');
+    });
+  }
+
+  const layerSearch = document.getElementById('layer-search-input');
+  if (layerSearch) {
+    layerSearch.addEventListener('input', async () => {
+      const stretches = await db.getAll('trechos');
+      renderLayerManagerList(stretches);
+    });
+  }
+
   // Modal actions
   document.getElementById('close-stretch-modal-btn').addEventListener('click', closeStretchModal);
   document.getElementById('btn-cancel-stretch').addEventListener('click', closeStretchModal);
   document.getElementById('stretch-form').addEventListener('submit', saveStretchFromModal);
+}
+
+/**
+ * Converts KML color (AABBGGRR / BBGGRR hex) to standard CSS #RRGGBB format
+ */
+function kmlColorToHex(kmlColor) {
+  if (!kmlColor) return null;
+  let str = kmlColor.trim().replace('#', '');
+  if (str.length === 8) {
+    // KML format: AABBGGRR -> RRGGBB
+    const r = str.substring(6, 8);
+    const g = str.substring(4, 6);
+    const b = str.substring(2, 4);
+    return `#${r}${g}${b}`;
+  } else if (str.length === 6) {
+    // BBGGRR -> RRGGBB
+    const r = str.substring(4, 6);
+    const g = str.substring(2, 4);
+    const b = str.substring(0, 2);
+    return `#${r}${g}${b}`;
+  }
+  return `#${str}`;
+}
+
+/**
+ * Extracts Style and StyleMap definitions from KML xmlDoc
+ */
+function extractKmlStyles(xmlDoc) {
+  const styles = {};
+
+  // Parse all <Style id="..."> elements
+  const styleNodes = xmlDoc.getElementsByTagName('Style');
+  for (let i = 0; i < styleNodes.length; i++) {
+    const style = styleNodes[i];
+    const id = style.getAttribute('id');
+    if (id) {
+      const lineStyle = style.getElementsByTagName('LineStyle')[0];
+      const polyStyle = style.getElementsByTagName('PolyStyle')[0];
+      const iconStyle = style.getElementsByTagName('IconStyle')[0];
+      
+      const colorNode = (lineStyle && lineStyle.getElementsByTagName('color')[0]) ||
+                        (polyStyle && polyStyle.getElementsByTagName('color')[0]) ||
+                        (iconStyle && iconStyle.getElementsByTagName('color')[0]) ||
+                        style.getElementsByTagName('color')[0];
+      
+      if (colorNode) {
+        const hex = kmlColorToHex(colorNode.textContent);
+        if (hex) {
+          styles['#' + id] = hex;
+          styles[id] = hex;
+        }
+      }
+    }
+  }
+
+  // Parse <StyleMap> elements
+  const styleMapNodes = xmlDoc.getElementsByTagName('StyleMap');
+  for (let i = 0; i < styleMapNodes.length; i++) {
+    const map = styleMapNodes[i];
+    const mapId = map.getAttribute('id');
+    if (mapId) {
+      const pair = map.getElementsByTagName('Pair')[0];
+      if (pair) {
+        const styleUrlNode = pair.getElementsByTagName('styleUrl')[0];
+        if (styleUrlNode) {
+          const url = styleUrlNode.textContent.trim();
+          if (styles[url]) {
+            styles['#' + mapId] = styles[url];
+            styles[mapId] = styles[url];
+          }
+        }
+      }
+    }
+  }
+
+  return styles;
 }
 
 /**
@@ -457,6 +633,9 @@ function handleKmlImport(e) {
         return;
       }
 
+      // Extract document styles table
+      const docStyles = extractKmlStyles(xmlDoc);
+
       let importCount = 0;
       
       for (let i = 0; i < placemarks.length; i++) {
@@ -464,6 +643,34 @@ function handleKmlImport(e) {
         const nameNode = placemark.getElementsByTagName('name')[0];
         const name = nameNode ? nameNode.textContent : `Canal Importado ${i + 1}`;
         const code = `CN-IMP-${Math.floor(100 + Math.random() * 900)}`;
+
+        // Extract color from styleUrl or inline Style
+        let extractedColor = null;
+        const styleUrlNode = placemark.getElementsByTagName('styleUrl')[0];
+        if (styleUrlNode) {
+          const url = styleUrlNode.textContent.trim();
+          if (docStyles[url]) {
+            extractedColor = docStyles[url];
+          }
+        }
+
+        if (!extractedColor) {
+          const inlineStyle = placemark.getElementsByTagName('Style')[0];
+          if (inlineStyle) {
+            const lineStyle = inlineStyle.getElementsByTagName('LineStyle')[0];
+            const polyStyle = inlineStyle.getElementsByTagName('PolyStyle')[0];
+            const colorNode = (lineStyle && lineStyle.getElementsByTagName('color')[0]) ||
+                              (polyStyle && polyStyle.getElementsByTagName('color')[0]) ||
+                              inlineStyle.getElementsByTagName('color')[0];
+            if (colorNode) {
+              extractedColor = kmlColorToHex(colorNode.textContent);
+            }
+          }
+        }
+
+        // Generate dynamic distinct color if none extracted
+        const defaultPalette = ['#0ea5e9', '#06b6d4', '#10b981', '#a855f7', '#f97316', '#eab308'];
+        const finalColor = extractedColor || defaultPalette[i % defaultPalette.length];
 
         // Extract Coordinates
         let coordinates = [];
@@ -515,12 +722,14 @@ function handleKmlImport(e) {
             code: code,
             extension: Math.round(extension),
             area: Math.round(area),
-            responsible: 'ResponsÃ¡vel TÃ©cnico',
+            responsible: 'Responsável Técnico',
             created: new Date().toISOString().split('T')[0],
             status: 'nao-iniciado',
             observations: 'Importado via arquivo KML.',
             coordinates: coordinates,
-            type: geometryType
+            type: geometryType,
+            color: finalColor,
+            visible: true
           };
 
           await db.put('trechos', newStretch);
@@ -528,7 +737,7 @@ function handleKmlImport(e) {
         }
       }
 
-      showToast(`${importCount} trechos importados com sucesso!`, 'success');
+      showToast(`${importCount} trechos importados com cores e geometrias!`, 'success');
       loadStretchesOnMap();
       refreshAllViews();
       
@@ -614,10 +823,23 @@ async function exportGisData(format) {
         geomTag = `<LineString><coordinates>${coordsKml.trim()}</coordinates></LineString>`;
       }
 
+      const colorHex = (stretch.color || STATUS_COLORS[stretch.status] || '#0ea5e9').replace('#', '');
+      let kmlColor = 'ff00aaff';
+      if (colorHex.length === 6) {
+        const r = colorHex.substring(0, 2);
+        const g = colorHex.substring(2, 4);
+        const b = colorHex.substring(4, 6);
+        kmlColor = `ff${b}${g}${r}`;
+      }
+
       placemarksKml += `
     <Placemark>
       <name>${stretch.name}</name>
-      <description>CÃ³digo: ${stretch.code} | ResponsÃ¡vel: ${stretch.responsible} | Status: ${stretch.status}</description>
+      <description>Código: ${stretch.code} | Responsável: ${stretch.responsible} | Status: ${stretch.status}</description>
+      <Style>
+        <LineStyle><color>${kmlColor}</color><width>4</width></LineStyle>
+        <PolyStyle><color>7f${kmlColor.substring(2)}</color></PolyStyle>
+      </Style>
       ${geomTag}
     </Placemark>`;
     });
@@ -668,8 +890,20 @@ export async function openStretchDetailsPanel(stretch) {
   // Style status badge
   const pill = document.getElementById('detail-status-pill');
   pill.innerText = stretch.status.replace('-', ' ');
-  pill.style.background = STATUS_COLORS[stretch.status];
+  pill.style.background = STATUS_COLORS[stretch.status] || stretch.color || '#0ea5e9';
   pill.style.color = '#ffffff';
+
+  // Detail color picker
+  const detailColorPicker = document.getElementById('detail-color-picker');
+  if (detailColorPicker) {
+    detailColorPicker.value = stretch.color || STATUS_COLORS[stretch.status] || '#0ea5e9';
+    detailColorPicker.onchange = async (e) => {
+      stretch.color = e.target.value;
+      await db.put('trechos', stretch);
+      loadStretchesOnMap();
+      showToast(`Cor do trecho ${stretch.code} atualizada!`, 'success');
+    };
+  }
 
   // Calculate Cumulative Production for this stretch
   const diaries = await db.getAll('diarios');
