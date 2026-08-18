@@ -1,4 +1,4 @@
-﻿/* ==========================================================================
+/* ==========================================================================
    GeoLimp - Shared Utilities (no circular dependencies)
    ========================================================================== */
 
@@ -44,7 +44,7 @@ function _dismissToast(toast) {
 
 /**
  * Returns the currently selected role from the DOM selector.
- * @returns {'admin'|'fiscal'|'visualizador'}
+ * @returns {'admin'|'visualizador'}
  */
 export function getActiveRole() {
   const sel = document.getElementById('user-role-select');
@@ -59,7 +59,6 @@ export function getActiveRole() {
 export function hasPermission(perm) {
   const PERMISSIONS = {
     admin:        { canEdit: true,  canDelete: true,  canExport: true, canSettings: true,  canDraw: true  },
-    fiscal:       { canEdit: true,  canDelete: false, canExport: true, canSettings: false, canDraw: true  },
     visualizador: { canEdit: false, canDelete: false, canExport: true, canSettings: false, canDraw: false },
   };
   const role = getActiveRole();

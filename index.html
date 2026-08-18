@@ -111,9 +111,8 @@
           <div class="role-selector-container">
             <label for="user-role-select">Perfil:</label>
             <select id="user-role-select" class="role-select">
-              <option value="admin">Administrador (Total)</option>
-              <option value="fiscal">Fiscal (Edição de Campo)</option>
-              <option value="visualizador">Visualizador (Consulta)</option>
+              <option value="admin">Administrador (Inserção e Edição)</option>
+              <option value="visualizador">Visualizador (Apenas Consulta)</option>
             </select>
           </div>
           
@@ -1098,24 +1097,16 @@
                   <div class="user-role-permission-card flex align-start gap-3 border p-3 rounded">
                     <i data-lucide="user-cog" class="text-primary text-xl mt-1"></i>
                     <div>
-                      <strong>Administrador</strong>
-                      <span class="block text-xs text-muted mt-1">Permissão total no sistema. Pode configurar metas, excluir registros, desenhar, fundir, dividir trechos e exportar arquivos GIS e PDF.</span>
-                    </div>
-                  </div>
-
-                  <div class="user-role-permission-card flex align-start gap-3 border p-3 rounded">
-                    <i data-lucide="edit" class="text-warning text-xl mt-1"></i>
-                    <div>
-                      <strong>Fiscal de Campo</strong>
-                      <span class="block text-xs text-muted mt-1">Permissão de edição restrita a registros de campo. Pode preencher diários de obras, alterar status operacionais e anexar fotos. Não pode configurar metas, excluir trechos ou alterar dados estruturais.</span>
+                      <strong>Administrador (Inserção e Edição)</strong>
+                      <span class="block text-xs text-muted mt-1">Permissão completa para inserir e editar informações no sistema: cadastrar/desenhar trechos, registrar diários de obra, anexar fotos, alterar status operacionais, configurar metas e gerenciar backups.</span>
                     </div>
                   </div>
 
                   <div class="user-role-permission-card flex align-start gap-3 border p-3 rounded">
                     <i data-lucide="eye" class="text-success text-xl mt-1"></i>
                     <div>
-                      <strong>Visualizador / Gestor</strong>
-                      <span class="block text-xs text-muted mt-1">Permissão de leitura apenas. Pode visualizar o mapa operacional, filtros, linha do tempo, painéis estatísticos e exportar relatórios PDF. Bloqueado de fazer qualquer tipo de modificação.</span>
+                      <strong>Visualizador (Apenas Consulta)</strong>
+                      <span class="block text-xs text-muted mt-1">Permissão de consulta e navegação em todas as abas (Mapa Operacional, Dashboard, Diários, Fotos, Linha do Tempo e PDF). Bloqueado de inserir, editar ou excluir qualquer informação.</span>
                     </div>
                   </div>
                 </div>

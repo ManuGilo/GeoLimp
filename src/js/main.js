@@ -17,7 +17,7 @@ import { showToast as _utilShowToast } from './utils.js';
 // GLOBAL STATE
 // ===========================================================================
 
-let _activeRole = 'admin'; // 'admin' | 'fiscal' | 'visualizador'
+let _activeRole = 'admin'; // 'admin' | 'visualizador'
 let _activeTab = 'map';
 let _modulesInitialized = new Set();
 
@@ -36,7 +36,6 @@ const TAB_META = {
 // Permission matrix
 const PERMISSIONS = {
   admin:        { canEdit: true,  canDelete: true,  canExport: true, canSettings: true,  canDraw: true  },
-  fiscal:       { canEdit: true,  canDelete: false, canExport: true, canSettings: false, canDraw: true  },
   visualizador: { canEdit: false, canDelete: false, canExport: true, canSettings: false, canDraw: false },
 };
 
@@ -393,8 +392,8 @@ async function _bootstrap() {
       roleSelect.addEventListener('change', () => {
         _activeRole = roleSelect.value;
         _applyPermissions();
-        const labels = { admin: 'Administrador', fiscal: 'Fiscal', visualizador: 'Visualizador' };
-        showToast(`Perfil: ${labels[_activeRole]}`, 'info');
+        const labels = { admin: 'Administrador (Inserção e Edição)', visualizador: 'Visualizador (Apenas Consulta)' };
+        showToast(`Perfil alterado para: ${labels[_activeRole] || _activeRole}`, 'info');
       });
     }
 
