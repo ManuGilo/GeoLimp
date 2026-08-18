@@ -1,4 +1,4 @@
-﻿/* ==========================================================================
+/* ==========================================================================
    GeoLimp - Photo Log and Georeferenced Evidences Module
    ========================================================================== */
 
@@ -26,6 +26,46 @@ export function initPhotos() {
 
   document.getElementById('filter-photo-type').removeEventListener('change', loadPhotoGallery);
   document.getElementById('filter-photo-type').addEventListener('change', loadPhotoGallery);
+
+  // Setup GPS Button
+  const gpsBtn = document.getElementById('btn-get-photo-gps');
+  if (gpsBtn) {
+    gpsBtn.addEventListener('click', handleGetGPSLocation);
+  }
+}
+
+/**
+ * Gets current device GPS location via HTML5 Geolocation API
+ */
+function handleGetGPSLocation() {
+  if (!navigator.geolocation) {
+    showToast('Geolocalização não é suportada por este navegador/dispositivo.', 'warning');
+    return;
+  }
+
+  showToast('Obtendo posição GPS em tempo real...', 'info');
+
+  navigator.geolocation.getCurrentPosition(
+    (position) => {
+      const { latitude, longitude } = position.coords;
+      const coordsInput = document.getElementById('photo-coords-display');
+      if (coordsInput) {
+        coordsInput.value = `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`;
+      }
+      // Store in input dataset
+      const form = document.getElementById('photo-form');
+      if (form) {
+        form.dataset.gpsLat = latitude;
+        form.dataset.gpsLng = longitude;
+      }
+      showToast(`GPS capturado: ${latitude.toFixed(4)}, ${longitude.toFixed(4)}`, 'success');
+    },
+    (error) => {
+      console.warn('Geolocation error:', error);
+      showToast('Não foi possível obter a posição GPS. Verifique as permissões.', 'warning');
+    },
+    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+  );
 }
 
 /**
@@ -51,16 +91,22 @@ async function handlePhotoSubmit(e) {
     return;
   }
 
-  // Find coordinates from associated stretch
-  const stretch = await db.get('trechos', stretchId);
-  if (!stretch) {
-    showToast('Erro: Trecho invÃ¡lido ou inexistente.', 'error');
-    return;
-  }
+  // Find coordinates from associated stretch or form dataset
+  const form = document.getElementById('photo-form');
+  let lat, lng;
 
-  // Default coordinates to the first node of the channel path
-  const lat = stretch.coordinates[0][0];
-  const lng = stretch.coordinates[0][1];
+  if (form && form.dataset.gpsLat && form.dataset.gpsLng) {
+    lat = parseFloat(form.dataset.gpsLat);
+    lng = parseFloat(form.dataset.gpsLng);
+  } else {
+    const stretch = await db.get('trechos', stretchId);
+    if (!stretch) {
+      showToast('Erro: Trecho inválido ou inexistente.', 'error');
+      return;
+    }
+    lat = stretch.coordinates[0][0];
+    lng = stretch.coordinates[0][1];
+  }
 
   const today = new Date();
   const dateStr = today.toISOString().split('T')[0];

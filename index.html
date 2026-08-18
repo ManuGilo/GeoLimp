@@ -5,6 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>GeoLimp - Monitoramento Georreferenciado de Limpeza de Canais</title>
   
+  <!-- PWA Manifest & Meta Tags -->
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#090d16">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="GeoLimp">
+  
   <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   
@@ -89,6 +96,17 @@
         </div>
         
         <div class="header-actions">
+          <!-- Connection Status Badge -->
+          <div class="connection-status-badge online" id="connection-status-badge" title="Status da Conexão com a Internet">
+            <span class="status-dot"></span>
+            <span class="status-text">Online</span>
+          </div>
+
+          <!-- PWA Install Button (hidden until prompt triggers) -->
+          <button class="btn btn-secondary btn-sm pwa-install-btn" id="btn-install-pwa" style="display:none;">
+            <i data-lucide="download"></i> <span>Instalar App</span>
+          </button>
+
           <!-- Role/User Selector -->
           <div class="role-selector-container">
             <label for="user-role-select">Perfil:</label>
@@ -674,8 +692,18 @@
                   </div>
 
                   <div class="form-group" style="flex: 1; min-width: 200px;">
-                    <label for="photo-file">Selecionar Imagem <span class="required">*</span></label>
-                    <input type="file" id="photo-file" accept="image/*" required />
+                    <label for="photo-file">Selecionar ou Fotografar <span class="required">*</span></label>
+                    <input type="file" id="photo-file" accept="image/*" capture="environment" required />
+                  </div>
+
+                  <div class="form-group" style="flex: 1; min-width: 200px;">
+                    <label for="photo-coords-display">Coordenadas GPS</label>
+                    <div class="flex gap-1">
+                      <input type="text" id="photo-coords-display" readonly placeholder="Auto do trecho ou GPS" style="font-size: 0.8rem;" />
+                      <button type="button" class="btn btn-secondary btn-icon" id="btn-get-photo-gps" title="Obter GPS em Tempo Real">
+                        <i data-lucide="crosshair"></i>
+                      </button>
+                    </div>
                   </div>
 
                   <button type="submit" class="btn btn-primary flex-center gap-1 shrink-0" id="btn-save-photo">
@@ -1071,6 +1099,38 @@
                       <strong>Visualizador / Gestor</strong>
                       <span class="block text-xs text-muted mt-1">Permissão de leitura apenas. Pode visualizar o mapa operacional, filtros, linha do tempo, painéis estatísticos e exportar relatórios PDF. Bloqueado de fazer qualquer tipo de modificação.</span>
                     </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Backup & Restauração de Dados -->
+            <div class="card flex-1">
+              <div class="card-header">
+                <h3>Backup e Cópia de Segurança Offline</h3>
+                <i data-lucide="database" class="text-primary"></i>
+              </div>
+              <div class="card-body flex-column gap-3">
+                <p class="text-sm text-muted">Exporte todos os trechos, diários de obra, fotos e metas para um ficheiro JSON de backup, garantindo a preservação total dos dados de campo.</p>
+
+                <div class="flex-column gap-2 mt-2">
+                  <button type="button" class="btn btn-primary flex-center gap-1" id="btn-export-backup">
+                    <i data-lucide="download-cloud"></i> Exportar Backup Completo (JSON)
+                  </button>
+
+                  <button type="button" class="btn btn-secondary flex-center gap-1" id="btn-trigger-import-backup">
+                    <i data-lucide="upload-cloud"></i> Restaurar Dados a partir de Backup
+                  </button>
+                  <input type="file" id="backup-file-input" accept=".json" style="display:none;" />
+                </div>
+
+                <hr style="border-color: rgba(255,255,255,0.05); margin: 0.5rem 0;" />
+
+                <div class="flex-column gap-1">
+                  <span class="text-xs text-danger font-bold">Zona de Perigo</span>
+                  <div class="flex gap-2">
+                    <button type="button" class="btn btn-danger btn-sm" id="btn-reset-data">Apagar Todos os Dados</button>
+                    <button type="button" class="btn btn-secondary btn-sm" id="btn-seed-data">Reinserir Dados Demo</button>
                   </div>
                 </div>
               </div>

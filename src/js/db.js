@@ -150,5 +150,70 @@ export const db = {
         request.onerror = () => reject(request.error);
       });
     });
+  },
+
+  /**
+   * Export all IndexedDB stores as a unified JSON object.
+   * @returns {Promise<Object>}
+   */
+  async exportFullBackup() {
+    const trechos = await this.getAll('trechos');
+    const diarios = await this.getAll('diarios');
+    const fotos = await this.getAll('fotos');
+    const metas = await this.getAll('metas');
+    const config = await this.getAll('config');
+
+    return {
+      appName: 'GeoLimp',
+      version: '1.2.0',
+      exportedAt: new Date().toISOString(),
+      data: {
+        trechos,
+        diarios,
+        fotos,
+        metas,
+        config
+      }
+    };
+  },
+
+  /**
+   * Import and restore database from a JSON backup object.
+   * @param {Object} backupData 
+   * @returns {Promise<void>}
+   */
+  async importFullBackup(backupData) {
+    if (!backupData || !backupData.data) {
+      throw new Error('Formato de arquivo de backup inválido.');
+    }
+
+    const { trechos, diarios, fotos, metas, config } = backupData.data;
+
+    // Clear existing stores
+    await Promise.all([
+      this.clear('trechos'),
+      this.clear('diarios'),
+      this.clear('fotos'),
+      this.clear('metas'),
+      this.clear('config')
+    ]);
+
+    // Restore items
+    if (Array.isArray(trechos)) {
+      for (const item of trechos) await this.put('trechos', item);
+    }
+    if (Array.isArray(diarios)) {
+      for (const item of diarios) await this.put('diarios', item);
+    }
+    if (Array.isArray(fotos)) {
+      for (const item of fotos) await this.put('fotos', item);
+    }
+    if (Array.isArray(metas)) {
+      for (const item of metas) await this.put('metas', item);
+    }
+    if (Array.isArray(config)) {
+      for (const item of config) await this.put('config', item);
+    }
   }
 };
+

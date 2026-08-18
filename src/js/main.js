@@ -1,4 +1,4 @@
-﻿/* ==========================================================================
+/* ==========================================================================
    GeoLimp - Main Application Entry Point & Router
    Orchestrates all modules, manages navigation, permissions and global utilities.
    ========================================================================== */
@@ -183,6 +183,64 @@ function _initSettings() {
     seedBtn.removeEventListener('click', _handleSeedData);
     seedBtn.addEventListener('click', _handleSeedData);
   }
+
+  // Backup Export
+  const exportBtn = document.getElementById('btn-export-backup');
+  if (exportBtn) {
+    exportBtn.removeEventListener('click', _handleExportBackup);
+    exportBtn.addEventListener('click', _handleExportBackup);
+  }
+
+  // Backup Import Trigger
+  const importTriggerBtn = document.getElementById('btn-trigger-import-backup');
+  const backupInput = document.getElementById('backup-file-input');
+  if (importTriggerBtn && backupInput) {
+    importTriggerBtn.addEventListener('click', () => backupInput.click());
+    backupInput.addEventListener('change', _handleImportBackupFile);
+  }
+}
+
+async function _handleExportBackup() {
+  try {
+    const backup = await db.exportFullBackup();
+    const jsonStr = JSON.stringify(backup, null, 2);
+    const blob = new Blob([jsonStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `geolimp_backup_${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    
+    showToast('Backup completo exportado com sucesso!', 'success');
+  } catch (err) {
+    console.error('[Backup] Export failed:', err);
+    showToast('Erro ao exportar backup.', 'error');
+  }
+}
+
+async function _handleImportBackupFile(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const confirmed = confirm('Atenção: A restauração de backup irá substituir os dados atuais por este arquivo. Deseja continuar?');
+  if (!confirmed) return;
+
+  const reader = new FileReader();
+  reader.onload = async (event) => {
+    try {
+      const backupData = JSON.parse(event.target.result);
+      await db.importFullBackup(backupData);
+      showToast('Dados restaurados do backup com sucesso! Recarregando...', 'success', 3000);
+      _modulesInitialized.clear();
+      setTimeout(() => location.reload(), 2000);
+    } catch (err) {
+      console.error('[Backup] Import failed:', err);
+      showToast(`Erro ao restaurar backup: ${err.message}`, 'error');
+    }
+  };
+  reader.readAsText(file);
 }
 
 async function _handleSaveSettings(e) {
@@ -343,6 +401,7 @@ async function _bootstrap() {
     _applyPermissions();
     _initSidebarToggle();
     _initModalCloseListeners();
+    _initPwaAndOffline();
 
     const hash = window.location.hash.replace('#', '') || 'map';
     const initialTab = TAB_META[hash] ? hash : 'map';
@@ -359,7 +418,7 @@ async function _bootstrap() {
       if (_modulesInitialized.has('dashboard') || _modulesInitialized.has('teams')) initDashboard();
     });
 
-    console.info('[GeoLimp] Application ready.');
+    console.info('[GeoLimp] Application ready with PWA & Offline capability.');
   } catch (err) {
     console.error('[GeoLimp] Bootstrap failed:', err);
     const banner = document.createElement('div');
@@ -367,6 +426,70 @@ async function _bootstrap() {
     banner.textContent = `Erro ao inicializar: ${err.message}. Recarregue a pagina.`;
     document.body.prepend(banner);
   }
+}
+
+// ===========================================================================
+// PWA & OFFLINE MODULE
+// ===========================================================================
+
+let deferredPwaPrompt = null;
+
+function _initPwaAndOffline() {
+  // 1. Register Service Worker
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js')
+        .then((reg) => console.info('[PWA] ServiceWorker registered with scope:', reg.scope))
+        .catch((err) => console.warn('[PWA] ServiceWorker registration failed:', err));
+    });
+  }
+
+  // 2. Monitor Online / Offline connection status
+  const updateNetworkStatus = () => {
+    const badge = document.getElementById('connection-status-badge');
+    if (!badge) return;
+
+    if (navigator.onLine) {
+      badge.className = 'connection-status-badge online';
+      badge.querySelector('.status-text').textContent = 'Online';
+      badge.title = 'Conectado à Internet';
+    } else {
+      badge.className = 'connection-status-badge offline';
+      badge.querySelector('.status-text').textContent = 'Offline (Modo de Campo)';
+      badge.title = 'Modo 100% Offline Ativado';
+      showToast('Modo de Campo 100% Offline ativado.', 'warning', 4000);
+    }
+  };
+
+  window.addEventListener('online', updateNetworkStatus);
+  window.addEventListener('offline', updateNetworkStatus);
+  updateNetworkStatus(); // initial check
+
+  // 3. Handle PWA Install Prompt
+  const installBtn = document.getElementById('btn-install-pwa');
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPwaPrompt = e;
+    if (installBtn) {
+      installBtn.style.display = 'inline-flex';
+      installBtn.addEventListener('click', async () => {
+        if (!deferredPwaPrompt) return;
+        deferredPwaPrompt.prompt();
+        const { outcome } = await deferredPwaPrompt.userChoice;
+        if (outcome === 'accepted') {
+          showToast('GeoLimp instalado com sucesso no seu dispositivo!', 'success');
+        }
+        deferredPwaPrompt = null;
+        installBtn.style.display = 'none';
+      });
+    }
+  });
+
+  window.addEventListener('appinstalled', () => {
+    console.info('[PWA] GeoLimp was installed.');
+    showToast('GeoLimp instalado!', 'success');
+    if (installBtn) installBtn.style.display = 'none';
+  });
 }
 
 document.addEventListener('DOMContentLoaded', _bootstrap);
