@@ -468,33 +468,90 @@ a {
   font-family: var(--font-family) !important;
 }
 
+/* Map Dock Columns (Non-Overlapping Flex Stack) */
+.map-dock-column {
+  position: absolute;
+  top: 15px;
+  z-index: 25;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: calc(100vh - 120px);
+  pointer-events: none; /* Allows clicking map through empty space between cards */
+}
+
+.map-dock-column.map-dock-left {
+  left: 60px; /* Aligned next to Leaflet draw toolbar */
+  width: 220px;
+}
+
+.map-dock-column.map-dock-right {
+  right: 15px;
+  width: 270px;
+}
+
+.map-dock-column .map-overlay-panel {
+  position: relative !important;
+  top: auto !important;
+  left: auto !important;
+  right: auto !important;
+  bottom: auto !important;
+  width: 100% !important;
+  pointer-events: auto; /* Re-enables interaction inside cards */
+  margin: 0;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
 /* Custom Map Overlay Panels (Glassmorphism UI) */
 .map-overlay-panel {
-  position: absolute;
-  z-index: 20;
   background: var(--glass-bg);
   border: 1px solid var(--glass-border);
   box-shadow: var(--glass-shadow);
   backdrop-filter: var(--backdrop-blur);
   -webkit-backdrop-filter: var(--backdrop-blur);
   border-radius: var(--radius-md);
-  padding: 1rem;
+  padding: 0.85rem;
 }
 
-.map-overlay-panel h3 {
-  font-size: 0.85rem;
+.panel-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.panel-card-header h3 {
+  font-size: 0.78rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--text-muted);
-  margin-bottom: 0.75rem;
+  margin: 0;
 }
 
-/* Layers Card overlay */
-.map-layers-card {
-  top: 20px;
-  right: 20px;
-  width: 220px;
+.panel-collapse-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s, color 0.2s, transform 0.3s ease;
+}
+
+.panel-collapse-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+
+.map-overlay-panel.collapsed .panel-card-content {
+  display: none !important;
+}
+
+.map-overlay-panel.collapsed .panel-collapse-btn {
+  transform: rotate(180deg);
 }
 
 .layer-selector, .theme-buttons {
@@ -524,17 +581,11 @@ a {
   color: white;
 }
 
-/* Paint / direct-color map overlay */
-.map-paint-card {
-  bottom: 120px;
-  left: 20px;
-  width: 200px;
-}
-
 .paint-options {
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
+  margin-top: 0.5rem;
 }
 
 .paint-option {
@@ -543,7 +594,7 @@ a {
   gap: 0.5rem;
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid var(--border-color);
-  padding: 0.5rem;
+  padding: 0.45rem 0.6rem;
   border-radius: var(--radius-sm);
   color: var(--text-main);
   font-size: 0.8rem;
@@ -572,18 +623,8 @@ a {
   display: inline-block;
 }
 
-/* File Actions KML/KMZ overlay */
-.map-file-card {
-  top: 20px;
-  left: 70px;
-  width: 220px;
-}
-
 /* Stretches & Layers Manager Card Overlay */
 .map-stretches-card {
-  top: 130px;
-  right: 20px;
-  width: 280px;
   max-height: 380px;
   display: flex;
   flex-direction: column;

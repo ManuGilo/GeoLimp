@@ -132,80 +132,103 @@
             <!-- Map Instance Container -->
             <div id="map-container"></div>
             
-            <!-- Map Overlay Controls -->
-            <div class="map-overlay-panel map-layers-card">
-              <h3>Camadas</h3>
-              <div class="layer-selector">
-                <button class="layer-btn active" data-map-layer="standard">Padrão</button>
-                <button class="layer-btn" data-map-layer="satellite">Satélite</button>
-                <button class="layer-btn" data-map-layer="hybrid">Híbrido</button>
-              </div>
-              <div class="theme-selector mt-3">
-                <h3>Visualização Temática</h3>
-                <div class="theme-buttons">
-                  <button class="theme-btn active" id="theme-status">Status Obra</button>
-                  <button class="theme-btn" id="theme-productivity">Produtividade</button>
+            <!-- Left Side Dock Column (Non-Overlapping Flex Stack) -->
+            <div class="map-dock-column map-dock-left">
+              <!-- Map Files Actions (Import/Export) -->
+              <div class="map-overlay-panel map-file-card">
+                <div class="panel-card-header">
+                  <h3>Ficheiros GIS & Fotos</h3>
+                  <button class="panel-collapse-btn" title="Minimizar / Expandir"><i data-lucide="chevron-up"></i></button>
+                </div>
+                <div class="panel-card-content">
+                  <div class="flex-column gap-2">
+                    <button class="btn btn-secondary flex-center gap-1 w-full" id="btn-import-kml">
+                      <i data-lucide="upload"></i> Importar KMZ / KML
+                      <input type="file" id="kml-file-input" accept=".kml,.kmz" style="display:none;" />
+                    </button>
+                    <button class="btn btn-success flex-center gap-1 w-full" id="btn-open-gphotos-map">
+                      <i data-lucide="cloud"></i> Google Fotos / Raio GPS
+                    </button>
+                    <div class="dropdown">
+                      <button class="btn btn-primary flex-center gap-1 w-full" id="btn-export-dropdown">
+                        <i data-lucide="download"></i> Exportar Dados
+                      </button>
+                      <div class="dropdown-content">
+                        <a href="#" id="export-geojson">GeoJSON</a>
+                        <a href="#" id="export-kml">KML</a>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <!-- Paint/Status direct tool -->
-            <div class="map-overlay-panel map-paint-card" id="map-paint-card">
-              <h3>Pintar Status Direto</h3>
-              <div class="paint-options">
-                <button class="paint-option active" data-paint-status="none">
-                  <i data-lucide="mouse-pointer"></i> <span>Navegar</span>
-                </button>
-                <button class="paint-option" data-paint-status="nao-iniciado" style="--status-color: #64748b;">
-                  <span class="color-dot" style="background: #64748b;"></span> Não Iniciado
-                </button>
-                <button class="paint-option" data-paint-status="em-andamento" style="--status-color: #eab308;">
-                  <span class="color-dot" style="background: #eab308;"></span> Em Andamento
-                </button>
-                <button class="paint-option" data-paint-status="concluido" style="--status-color: #22c55e;">
-                  <span class="color-dot" style="background: #22c55e;"></span> Concluído
-                </button>
-                <button class="paint-option" data-paint-status="retrabalho" style="--status-color: #ef4444;">
-                  <span class="color-dot" style="background: #ef4444;"></span> Retrabalho
-                </button>
-                <button class="paint-option" data-paint-status="bloqueado" style="--status-color: #a855f7;">
-                  <span class="color-dot" style="background: #a855f7;"></span> Bloqueado
-                </button>
-              </div>
-            </div>
-
-            <!-- Map Files Actions (Import/Export) -->
-            <div class="map-overlay-panel map-file-card">
-              <h3>Ficheiros GIS & Fotos</h3>
-              <div class="flex-column gap-2">
-                <button class="btn btn-secondary flex-center gap-1" id="btn-import-kml">
-                  <i data-lucide="upload"></i> Importar KMZ / KML
-                  <input type="file" id="kml-file-input" accept=".kml,.kmz" style="display:none;" />
-                </button>
-                <button class="btn btn-success flex-center gap-1" id="btn-open-gphotos-map">
-                  <i data-lucide="cloud"></i> Google Fotos / Raio GPS
-                </button>
-                <div class="dropdown">
-                  <button class="btn btn-primary flex-center gap-1 w-full" id="btn-export-dropdown">
-                    <i data-lucide="download"></i> Exportar Dados
-                  </button>
-                  <div class="dropdown-content">
-                    <a href="#" id="export-geojson">GeoJSON</a>
-                    <a href="#" id="export-kml">KML</a>
+              <!-- Paint/Status direct tool -->
+              <div class="map-overlay-panel map-paint-card" id="map-paint-card">
+                <div class="panel-card-header">
+                  <h3>Pintar Status Direto</h3>
+                  <button class="panel-collapse-btn" title="Minimizar / Expandir"><i data-lucide="chevron-up"></i></button>
+                </div>
+                <div class="panel-card-content">
+                  <div class="paint-options">
+                    <button class="paint-option active" data-paint-status="none">
+                      <i data-lucide="mouse-pointer"></i> <span>Navegar</span>
+                    </button>
+                    <button class="paint-option" data-paint-status="nao-iniciado" style="--status-color: #64748b;">
+                      <span class="color-dot" style="background: #64748b;"></span> Não Iniciado
+                    </button>
+                    <button class="paint-option" data-paint-status="em-andamento" style="--status-color: #eab308;">
+                      <span class="color-dot" style="background: #eab308;"></span> Em Andamento
+                    </button>
+                    <button class="paint-option" data-paint-status="concluido" style="--status-color: #22c55e;">
+                      <span class="color-dot" style="background: #22c55e;"></span> Concluído
+                    </button>
+                    <button class="paint-option" data-paint-status="retrabalho" style="--status-color: #ef4444;">
+                      <span class="color-dot" style="background: #ef4444;"></span> Retrabalho
+                    </button>
+                    <button class="paint-option" data-paint-status="bloqueado" style="--status-color: #a855f7;">
+                      <span class="color-dot" style="background: #a855f7;"></span> Bloqueado
+                    </button>
                   </div>
                 </div>
               </div>
             </div>
 
-            <!-- Layer Manager / Stretches Toggle Card Overlay -->
-            <div class="map-overlay-panel map-stretches-card" id="map-stretches-card">
-              <div class="flex justify-between align-center mb-2">
-                <h3>Gerenciar Áreas & Trechos</h3>
-                <button class="btn btn-secondary btn-sm" id="btn-toggle-all-stretches" title="Alternar visibilidade de todas as áreas">Ativar/Desativar Todos</button>
+            <!-- Right Side Dock Column (Non-Overlapping Flex Stack) -->
+            <div class="map-dock-column map-dock-right">
+              <!-- Map Base Layer & Theme Card -->
+              <div class="map-overlay-panel map-layers-card">
+                <div class="panel-card-header">
+                  <h3>Camadas & Temas</h3>
+                  <button class="panel-collapse-btn" title="Minimizar / Expandir"><i data-lucide="chevron-up"></i></button>
+                </div>
+                <div class="panel-card-content">
+                  <div class="layer-selector mb-2">
+                    <button class="layer-btn active" data-map-layer="standard">Padrão</button>
+                    <button class="layer-btn" data-map-layer="satellite">Satélite</button>
+                    <button class="layer-btn" data-map-layer="hybrid">Híbrido</button>
+                  </div>
+                  <div class="theme-buttons">
+                    <button class="theme-btn active" id="theme-status">Status Obra</button>
+                    <button class="theme-btn" id="theme-productivity">Produtividade</button>
+                  </div>
+                </div>
               </div>
-              <input type="text" id="layer-search-input" placeholder="🔍 Buscar trecho/área..." class="layer-search-box" />
-              <div class="stretches-list-container" id="stretches-list-container">
-                <!-- Dynamically populated stretch/layer items with toggles and colors -->
+
+              <!-- Layer Manager / Stretches Toggle Card Overlay -->
+              <div class="map-overlay-panel map-stretches-card" id="map-stretches-card">
+                <div class="panel-card-header">
+                  <h3>Gerenciar Trechos</h3>
+                  <div class="flex align-center gap-1">
+                    <button class="btn btn-secondary btn-sm" id="btn-toggle-all-stretches" title="Alternar visibilidade de todas as áreas">Ativar/Desativar Todos</button>
+                    <button class="panel-collapse-btn" title="Minimizar / Expandir"><i data-lucide="chevron-up"></i></button>
+                  </div>
+                </div>
+                <div class="panel-card-content flex-column overflow-hidden">
+                  <input type="text" id="layer-search-input" placeholder="🔍 Buscar trecho/área..." class="layer-search-box" />
+                  <div class="stretches-list-container" id="stretches-list-container">
+                    <!-- Dynamically populated stretch/layer items with toggles and colors -->
+                  </div>
+                </div>
               </div>
             </div>
 

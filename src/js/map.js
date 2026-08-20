@@ -526,6 +526,17 @@ function setupOverlayListeners() {
     });
   });
 
+  // Collapsible overlay card panels
+  document.querySelectorAll('.panel-collapse-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const card = btn.closest('.map-overlay-panel');
+      if (card) {
+        card.classList.toggle('collapsed');
+      }
+    });
+  });
+
   // Detail panel close btn
   document.getElementById('close-detail-btn').addEventListener('click', closeStretchDetailsPanel);
 
