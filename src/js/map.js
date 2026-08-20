@@ -321,22 +321,29 @@ async function renderPhotoMarkersOnMap() {
       const stretchCode = stretchMap[photo.stretchId] || 'Vínculo GPS';
 
       const photoIcon = L.divIcon({
-        className: 'custom-photo-marker',
-        html: `<div style="background: #0ea5e9; color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.5); border: 2px solid #ffffff; cursor: pointer; font-size:14px;">📷</div>`,
-        iconSize: [28, 28],
-        iconAnchor: [14, 14]
+        className: 'custom-gphotos-pin-marker',
+        html: `
+          <div class="gphotos-map-pin" title="${photo.desc || 'Foto Georreferenciada'}">
+            <img src="${photo.image}" alt="Foto" />
+          </div>
+        `,
+        iconSize: [42, 42],
+        iconAnchor: [21, 21]
       });
 
       const marker = L.marker([photo.lat, photo.lng], { icon: photoIcon });
-      const imgContent = photo.image ? `<img src="${photo.image}" style="width:100%; max-height:160px; object-fit:cover; border-radius:6px; margin-bottom:6px;" />` : '';
+      const imgContent = photo.image ? `<img src="${photo.image}" style="width:100%; max-height:160px; object-fit:cover; border-radius:10px; margin-bottom:6px;" />` : '';
 
       marker.bindPopup(`
-        <div style="max-width: 220px; font-family: 'Outfit', sans-serif;">
+        <div style="max-width: 230px; font-family: 'Outfit', sans-serif; padding:4px;">
           ${imgContent}
-          <div style="font-weight:600; font-size:12px; margin-bottom:2px;">${photo.desc || 'Evidência Fotográfica'}</div>
-          <div style="font-size:11px; color:#0ea5e9;">Trecho: ${stretchCode}</div>
-          <div style="font-size:10px; color:#64748b; margin-top:2px;">Etapa: <strong>${typeLabel}</strong> • ${photo.date || ''} ${photo.time ? 'às ' + photo.time : ''}</div>
-          ${photo.url ? `<a href="${photo.url}" target="_blank" style="display:inline-block; margin-top:6px; font-size:11px; color:#38bdf8; text-decoration:underline;">Ver no Google Fotos ↗</a>` : ''}
+          <div style="font-weight:600; font-size:13px; color:#ffffff; margin-bottom:2px;">${photo.desc || 'Evidência Fotográfica'}</div>
+          <div style="font-size:11px; color:#38bdf8; font-weight:600;">📍 Trecho: ${stretchCode}</div>
+          <div style="font-size:10px; color:#9ca3af; margin-top:2px;">Etapa: <strong>${typeLabel}</strong> • ${photo.date || ''} ${photo.time ? 'às ' + photo.time : ''}</div>
+          <div style="margin-top:8px; display:flex; gap:6px; flex-wrap:wrap;">
+            <a href="https://maps.google.com/?q=${photo.lat},${photo.lng}" target="_blank" style="font-size:10px; color:#38bdf8; font-weight:600;">🗺️ Google Maps ↗</a>
+            ${photo.url ? `<a href="${photo.url}" target="_blank" style="font-size:10px; color:#a855f7; font-weight:600;">🔗 Google Fotos ↗</a>` : ''}
+          </div>
         </div>
       `);
 

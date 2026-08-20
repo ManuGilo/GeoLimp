@@ -1,5 +1,5 @@
 /* ==========================================================================
-   GeoLimp - Photo Log and Georeferenced Evidences Module
+   GeoCampo - Photo Log and Georeferenced Evidences Module
    ========================================================================== */
 
 import { db } from './db.js';
@@ -7,8 +7,9 @@ import { showToast, getActiveRole, refreshAllViews } from './utils.js';
 import { findNearestStretch, parsePhotoFileMetadata } from './geoUtils.js';
 
 let pendingPhotoItems = [];
-let googleAccountToken = localStorage.getItem('geolimp_gphotos_token') || null;
-let googleAccountUser = JSON.parse(localStorage.getItem('geolimp_gphotos_user') || 'null');
+let googleAccountToken = localStorage.getItem('geocampo_gphotos_token') || null;
+let googleAccountUser = JSON.parse(localStorage.getItem('geocampo_gphotos_user') || 'null');
+let lbMiniMapInstance = null;
 
 /**
  * Initializes listeners and populates files for the Photo Gallery tab.
@@ -219,7 +220,7 @@ export async function loadPhotoGallery() {
       </div>
     `;
 
-    // Click to view full image in a custom light-box modal
+    // Click to view full image in Google Photos Native Style Lightbox
     card.addEventListener('click', () => {
       openLightbox(p, stretchCode, typeLabel);
     });
@@ -229,7 +230,7 @@ export async function loadPhotoGallery() {
 }
 
 /**
- * Open lightbox popup for photos
+ * Open Google Photos Native Style Lightbox modal with Mini-Map & Circular Pin
  */
 function openLightbox(photo, stretchCode, typeLabel) {
   let lb = document.getElementById('photo-lightbox');
@@ -237,51 +238,156 @@ function openLightbox(photo, stretchCode, typeLabel) {
     lb = document.createElement('div');
     lb.id = 'photo-lightbox';
     lb.className = 'modal-backdrop';
-    lb.innerHTML = `
-      <div class="modal-container w-450" style="background:#000; border-color:#222;">
-        <div class="modal-header" style="border:none;">
-          <h3 id="lb-title" style="color:#fff;">Foto</h3>
-          <button class="close-btn" onclick="document.getElementById('photo-lightbox').classList.remove('open')">&times;</button>
-        </div>
-        <div style="padding:0; overflow:hidden; text-align:center;">
-          <img id="lb-img" src="" style="max-width:100%; max-height:400px; object-fit:contain;" />
-        </div>
-        <div style="padding:1.25rem; color:#fff; font-size:0.85rem;" class="flex-column gap-1">
-          <p id="lb-desc" style="font-weight:600;"></p>
-          <span id="lb-meta-stretch" class="text-primary"></span>
-          <span id="lb-meta-date" class="text-muted"></span>
-          <span id="lb-meta-coords" class="text-muted"></span>
-          <div id="lb-google-link-container" class="mt-2" style="display:none;">
-            <a id="lb-google-link" href="#" target="_blank" class="btn btn-secondary btn-sm" style="color:#38bdf8;">Abrir no Google Fotos ↗</a>
-          </div>
-        </div>
-      </div>
-    `;
     document.body.appendChild(lb);
   }
 
-  // Populate lightbox
-  document.getElementById('lb-img').src = photo.image;
-  document.getElementById('lb-title').innerText = `Evidência [${typeLabel.toUpperCase()}]`;
-  document.getElementById('lb-desc').innerText = photo.desc || 'Foto Operacional';
-  document.getElementById('lb-meta-stretch').innerText = `Vinculado ao canal: ${stretchCode}`;
-  
-  const parts = photo.date.split('-');
-  const formattedDate = parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : photo.date;
-  document.getElementById('lb-meta-date').innerText = `Registrado em: ${formattedDate} às ${photo.time || '12:00'}`;
-  document.getElementById('lb-meta-coords').innerText = photo.lat ? `Coordenadas: Lat ${photo.lat.toFixed(5)} / Lng ${photo.lng.toFixed(5)}` : 'Sem coordenadas';
-
-  const linkContainer = document.getElementById('lb-google-link-container');
-  const googleLink = document.getElementById('lb-google-link');
-  if (photo.url && linkContainer && googleLink) {
-    googleLink.href = photo.url;
-    linkContainer.style.display = 'block';
-  } else if (linkContainer) {
-    linkContainer.style.display = 'none';
+  // Format Date in Portuguese format (e.g. Qui., 20 de ago. de 2026 • 11:20)
+  let dateFormattedStr = photo.date || '';
+  if (photo.date) {
+    try {
+      const parts = photo.date.split('-');
+      if (parts.length === 3) {
+        const d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+        const weekday = d.toLocaleDateString('pt-BR', { weekday: 'short' });
+        const day = parts[2];
+        const month = d.toLocaleDateString('pt-BR', { month: 'short' });
+        const year = parts[0];
+        const capitalizedWeekday = weekday.charAt(0).toUpperCase() + weekday.slice(1);
+        dateFormattedStr = `${capitalizedWeekday}, ${day} de ${month} de ${year} • ${photo.time || '12:00'}`;
+      }
+    } catch (e) {
+      dateFormattedStr = `${photo.date} • ${photo.time || '12:00'}`;
+    }
   }
 
-  // Show
+  const lat = photo.lat || -8.0500;
+  const lng = photo.lng || -34.9000;
+  const googleMapsUrl = `https://maps.google.com/?q=${lat},${lng}`;
+
+  lb.innerHTML = `
+    <div class="modal-container gphotos-lightbox-modal">
+      <!-- Header Photo with Floating Back/Close Button -->
+      <div class="gphotos-header-img-container">
+        <button class="gphotos-header-close-btn" id="btn-close-gphotos-lb" title="Voltar">←</button>
+        <img src="${photo.image}" alt="Foto Georreferenciada" />
+      </div>
+
+      <!-- Sheet Body (Google Photos Native Layout) -->
+      <div class="gphotos-sheet-body">
+        <!-- Date & Time -->
+        <div class="gphotos-date-title">
+          <span>${dateFormattedStr}</span>
+          <i data-lucide="edit-3" style="width:16px; height:16px; opacity:0.6; cursor:pointer;" title="Editar data"></i>
+        </div>
+
+        <!-- Caption / Legend -->
+        <div style="font-size:0.85rem; color:${photo.desc ? '#f3f4f6' : '#9ca3af'}; font-style:${photo.desc ? 'normal' : 'italic'};">
+          ${photo.desc || 'Adicione uma legenda...'}
+        </div>
+
+        <!-- Location Row & Google Maps Action -->
+        <div class="gphotos-location-row">
+          <div class="flex align-center gap-1">
+            <span style="font-weight:600;">Trecho ${stretchCode}</span>
+            <i data-lucide="edit-2" style="width:14px; height:14px; opacity:0.6; cursor:pointer;" title="Editar local"></i>
+          </div>
+          <a href="${googleMapsUrl}" target="_blank" class="gphotos-maps-link-btn">
+            Abrir no Google Maps ↗
+          </a>
+        </div>
+
+        <!-- Embedded Interactive Mini-Map with Circular Photo Pin -->
+        <div class="gphotos-minimap-card" id="lb-gphotos-minimap-container"></div>
+
+        <!-- Action: Open in Main Map -->
+        <div class="flex justify-between align-center border-top pt-2 mt-1" style="border-color: rgba(255,255,255,0.06);">
+          <span class="text-xs text-muted">Etapa da Obra: <strong class="text-primary">${typeLabel}</strong></span>
+          <button type="button" class="btn btn-secondary btn-sm flex-center gap-1" id="btn-lb-view-on-main-map">
+            <i data-lucide="map-pin"></i> Ver no Mapa Principal
+          </button>
+        </div>
+
+        <!-- Details Section ("Detalhes") -->
+        <div class="mt-1 flex-column gap-2">
+          <span class="text-xs font-bold text-muted">Detalhes</span>
+          <div class="gphotos-detail-card">
+            <i data-lucide="cloud" class="text-primary" style="width:20px; height:20px;"></i>
+            <div class="flex-column">
+              <strong style="font-size:0.8rem; color:#fff;">Em backup • GeoCampo Database</strong>
+              <span class="text-xs text-muted">Qualidade original georreferenciada</span>
+            </div>
+          </div>
+          ${photo.url ? `
+            <div class="gphotos-detail-card">
+              <i data-lucide="link" class="text-success" style="width:20px; height:20px;"></i>
+              <div class="flex-column">
+                <strong style="font-size:0.8rem; color:#fff;">Sincronizado via Google Fotos</strong>
+                <a href="${photo.url}" target="_blank" class="text-xs text-primary">Abrir álbum na nuvem ↗</a>
+              </div>
+            </div>
+          ` : ''}
+        </div>
+      </div>
+    </div>
+  `;
+
+  // Attach Close listener
+  document.getElementById('btn-close-gphotos-lb').addEventListener('click', () => {
+    lb.classList.remove('open');
+  });
+
+  // Attach View on Main Map listener
+  document.getElementById('btn-lb-view-on-main-map').addEventListener('click', () => {
+    lb.classList.remove('open');
+    import('./main.js').then(m => m.navigateTo('map'));
+    setTimeout(() => {
+      import('./map.js').then(mapMod => {
+        if (mapMod.mapInstance) {
+          mapMod.mapInstance.setView([lat, lng], 17, { animate: true });
+        }
+      });
+    }, 200);
+  });
+
+  // Render icons
+  if (window.lucide) window.lucide.createIcons();
+
+  // Show Modal
   lb.classList.add('open');
+
+  // Instantiate Leaflet Mini-Map inside sheet body
+  setTimeout(() => {
+    if (lbMiniMapInstance) {
+      lbMiniMapInstance.remove();
+      lbMiniMapInstance = null;
+    }
+
+    const container = document.getElementById('lb-gphotos-minimap-container');
+    if (!container) return;
+
+    lbMiniMapInstance = L.map('lb-gphotos-minimap-container', {
+      zoomControl: false,
+      attributionControl: false,
+      dragging: true,
+      scrollWheelZoom: false
+    }).setView([lat, lng], 15);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(lbMiniMapInstance);
+
+    // Circular Photo Bubble Pin on Mini-Map!
+    const photoPinIcon = L.divIcon({
+      className: 'custom-gphotos-pin-marker',
+      html: `
+        <div class="gphotos-map-pin">
+          <img src="${photo.image}" alt="Pin" />
+        </div>
+      `,
+      iconSize: [42, 42],
+      iconAnchor: [21, 21]
+    });
+
+    L.marker([lat, lng], { icon: photoPinIcon }).addTo(lbMiniMapInstance);
+  }, 100);
 }
 
 /**
@@ -366,12 +472,12 @@ export function initGooglePhotosImport() {
   const saveClientIdBtn = document.getElementById('btn-save-gphotos-client-id');
   const clientIdInput = document.getElementById('gphotos-client-id-input');
   if (clientIdInput) {
-    clientIdInput.value = localStorage.getItem('geolimp_gphotos_client_id') || '';
+    clientIdInput.value = localStorage.getItem('geocampo_gphotos_client_id') || '';
   }
   if (saveClientIdBtn && clientIdInput) {
     saveClientIdBtn.addEventListener('click', () => {
       const val = clientIdInput.value.trim();
-      localStorage.setItem('geolimp_gphotos_client_id', val);
+      localStorage.setItem('geocampo_gphotos_client_id', val);
       showToast('Client ID OAuth do Google salvo com sucesso!', 'success');
     });
   }
@@ -416,7 +522,7 @@ export function initGooglePhotosImport() {
  * Handles Sign-In / Associating Google Account
  */
 function handleConnectGoogleAccount() {
-  const clientId = localStorage.getItem('geolimp_gphotos_client_id');
+  const clientId = localStorage.getItem('geocampo_gphotos_client_id');
 
   // If Google GIS script is available and user provided client ID, run OAuth token client
   if (window.google && window.google.accounts && window.google.accounts.oauth2 && clientId) {
@@ -432,8 +538,8 @@ function handleConnectGoogleAccount() {
             email: 'usuario.obras@gmail.com',
             avatar: 'G'
           };
-          localStorage.setItem('geolimp_gphotos_token', googleAccountToken);
-          localStorage.setItem('geolimp_gphotos_user', JSON.stringify(googleAccountUser));
+          localStorage.setItem('geocampo_gphotos_token', googleAccountToken);
+          localStorage.setItem('geocampo_gphotos_user', JSON.stringify(googleAccountUser));
           showToast('Conta do Google Fotos associada com sucesso!', 'success');
           updateGoogleAccountUI();
         }
@@ -448,8 +554,8 @@ function handleConnectGoogleAccount() {
       email: 'usuario.geo@gmail.com',
       avatar: 'G'
     };
-    localStorage.setItem('geolimp_gphotos_token', googleAccountToken);
-    localStorage.setItem('geolimp_gphotos_user', JSON.stringify(googleAccountUser));
+    localStorage.setItem('geocampo_gphotos_token', googleAccountToken);
+    localStorage.setItem('geocampo_gphotos_user', JSON.stringify(googleAccountUser));
     showToast('Conta do Google Fotos conectada em modo integrado!', 'success');
     updateGoogleAccountUI();
   }
@@ -461,8 +567,8 @@ function handleConnectGoogleAccount() {
 function handleDisconnectGoogleAccount() {
   googleAccountToken = null;
   googleAccountUser = null;
-  localStorage.removeItem('geolimp_gphotos_token');
-  localStorage.removeItem('geolimp_gphotos_user');
+  localStorage.removeItem('geocampo_gphotos_token');
+  localStorage.removeItem('geocampo_gphotos_user');
   showToast('Conta do Google desconectada.', 'info');
   updateGoogleAccountUI();
 }
