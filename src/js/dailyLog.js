@@ -1,5 +1,5 @@
-﻿/* ==========================================================================
-   GeoLimp - Daily Operations Log Module (DiÃ¡rio de Obras)
+/* ==========================================================================
+   GeoLimp - Daily Operations Log Module (Diário de Obras)
    ========================================================================== */
 
 import { db } from './db.js';
@@ -38,7 +38,7 @@ export function initDailyLogs() {
     form.reset();
     document.getElementById('log-id').value = '';
     document.getElementById('log-date').value = new Date().toISOString().split('T')[0];
-    document.getElementById('daily-log-form-title').innerText = 'Registrar ProduÃ§Ã£o DiÃ¡ria';
+    document.getElementById('daily-log-form-title').innerText = 'Registrar Produção Diária';
   });
 }
 
@@ -80,7 +80,7 @@ async function handleLogSubmit(e) {
   
   const role = getActiveRole();
   if (role === 'visualizador') {
-    showToast('PermissÃ£o Negada: Visualizadores nÃ£o podem registrar dados.', 'error');
+    showToast('Permissão Negada: Visualizadores não podem registrar dados.', 'error');
     return;
   }
 
@@ -134,13 +134,13 @@ async function handleLogSubmit(e) {
       await db.put('trechos', stretch);
     }
 
-    showToast('Registro diÃ¡rio salvo com sucesso!', 'success');
+    showToast('Registro diário salvo com sucesso!', 'success');
     
     // Reset Form
     document.getElementById('daily-log-form').reset();
     document.getElementById('log-id').value = '';
     document.getElementById('log-date').value = new Date().toISOString().split('T')[0];
-    document.getElementById('daily-log-form-title').innerText = 'Registrar ProduÃ§Ã£o DiÃ¡ria';
+    document.getElementById('daily-log-form-title').innerText = 'Registrar Produção Diária';
 
     // Refresh Map and Views
     refreshAllViews();
@@ -197,19 +197,19 @@ export async function loadLogsTable() {
       <td>${formattedDate}</td>
       <td><strong>${stretchCode}</strong></td>
       <td>${log.team}</td>
-      <td>${log.area} mÂ²</td>
+      <td>${log.area} m²</td>
       <td>${log.extension} m</td>
       <td>${log.bags}</td>
-      <td>${log.volume.toFixed(1)} mÂ³</td>
+      <td>${log.volume.toFixed(1)} m³</td>
       <td>${log.hours} h (${log.workers} trab.)</td>
       <td><span class="text-xs">${log.weather}</span></td>
       <td>
         <div class="flex gap-1">
           <button class="btn btn-secondary btn-icon-sm" title="Editar Registro" onclick="editDailyLog(${log.id})">
-            âœï¸
+            <i data-lucide="edit-2"></i>
           </button>
           <button class="btn btn-danger btn-icon-sm" title="Excluir Registro" onclick="deleteDailyLog(${log.id})">
-            ðŸ—‘ï¸
+            <i data-lucide="trash-2"></i>
           </button>
         </div>
       </td>
@@ -222,13 +222,17 @@ export async function loadLogsTable() {
 
     tbody.appendChild(row);
   });
+
+  if (window.lucide) {
+    window.lucide.createIcons();
+  }
 }
 
 // Attach functions to global window for inline onclick accessibility
 window.editDailyLog = async function(id) {
   const role = getActiveRole();
   if (role === 'visualizador') {
-    showToast('PermissÃ£o Negada.', 'error');
+    showToast('Permissão Negada.', 'error');
     return;
   }
 
@@ -254,7 +258,7 @@ window.editDailyLog = async function(id) {
   document.getElementById('log-obs').value = log.observations || '';
 
   // Update Title
-  document.getElementById('daily-log-form-title').innerText = 'Editar Registro DiÃ¡rio';
+  document.getElementById('daily-log-form-title').innerText = 'Editar Registro Diário';
   
   // Slide logs panel scroll to top form
   document.getElementById('daily-log-form-container').scrollIntoView({ behavior: 'smooth' });
@@ -263,14 +267,13 @@ window.editDailyLog = async function(id) {
 window.deleteDailyLog = async function(id) {
   const role = getActiveRole();
   if (role !== 'admin') {
-    showToast('Apenas administradores podem excluir diÃ¡rios de obra.', 'error');
+    showToast('Apenas administradores podem excluir diários de obra.', 'error');
     return;
   }
 
-  if (confirm('Deseja excluir permanentemente este registro diÃ¡rio de obra?')) {
+  if (confirm('Deseja excluir permanentemente este registro diário de obra?')) {
     await db.delete('diarios', id);
-    showToast('Registro excluÃ­do com sucesso.', 'success');
+    showToast('Registro excluído com sucesso.', 'success');
     refreshAllViews();
   }
 };
-

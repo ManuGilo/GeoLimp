@@ -117,7 +117,7 @@ function setupDrawControl() {
       polygon: {
         allowIntersection: false,
         showArea: true,
-        drawError: { color: '#ef4444', message: '<strong>Erro:</strong> PolÃ­gonos nÃ£o podem se cruzar!' },
+        drawError: { color: '#ef4444', message: '<strong>Erro:</strong> Polígonos não podem se cruzar!' },
         shapeOptions: { color: '#38bdf8', weight: 4 }
       },
       polyline: {
@@ -526,7 +526,7 @@ function setupOverlayListeners() {
   document.getElementById('btn-import-kml').addEventListener('click', () => {
     const role = getActiveRole();
     if (role === 'visualizador') {
-      showToast('PermissÃ£o Negada: Apenas Fiscais/Admins podem importar arquivos.', 'error');
+      showToast('Permissão Negada: Apenas Fiscais/Admins podem importar arquivos.', 'error');
       return;
     }
     document.getElementById('kml-file-input').click();
@@ -549,7 +549,7 @@ function setupOverlayListeners() {
   document.getElementById('btn-edit-stretch').addEventListener('click', () => {
     const role = getActiveRole();
     if (role === 'visualizador') {
-      showToast('PermissÃ£o Negada.', 'error');
+      showToast('Permissão Negada.', 'error');
       return;
     }
     if (selectedStretch) openStretchModal(selectedStretch);
@@ -561,9 +561,9 @@ function setupOverlayListeners() {
       showToast('Apenas administradores podem excluir trechos.', 'error');
       return;
     }
-    if (selectedStretch && confirm(`Deseja excluir o trecho ${selectedStretch.code}? Esta aÃ§Ã£o nÃ£o pode ser desfeita.`)) {
+    if (selectedStretch && confirm(`Deseja excluir o trecho ${selectedStretch.code}? Esta ação não pode ser desfeita.`)) {
       db.delete('trechos', selectedStretch.id).then(() => {
-        showToast('Trecho excluÃ­do com sucesso.', 'success');
+        showToast('Trecho excluído com sucesso.', 'success');
         closeStretchDetailsPanel();
         loadStretchesOnMap();
         refreshAllViews();
@@ -1153,7 +1153,7 @@ function saveStretchFromModal(e) {
 function handleSplitAction() {
   const role = getActiveRole();
   if (role === 'visualizador') {
-    showToast('PermissÃ£o Negada.', 'error');
+    showToast('Permissão Negada.', 'error');
     return;
   }
   if (!selectedStretch) return;
@@ -1188,8 +1188,6 @@ function handleSplitAction() {
 
     if (splitIndex > 0 && splitIndex < coords.length) {
       // Split coordinates array into two segments
-      const coordsA = coords.slice(0, splitIndex + 1);
-      // Let's make A and B touch at the split point
       const splitPoint = [clickLatLng.lat, clickLatLng.lng];
       
       const newCoordsA = [...coords.slice(0, splitIndex), splitPoint];
@@ -1239,7 +1237,7 @@ function handleSplitAction() {
 function handleMergeAction() {
   const role = getActiveRole();
   if (role === 'visualizador') {
-    showToast('PermissÃ£o Negada.', 'error');
+    showToast('Permissão Negada.', 'error');
     return;
   }
   if (!selectedStretch) return;
@@ -1273,7 +1271,7 @@ function handleMergeAction() {
     });
 
     if (!targetStretch) {
-      showToast('Nenhum trecho vÃ¡lido clicado para fusÃ£o.', 'error');
+      showToast('Nenhum trecho válido clicado para fusão.', 'error');
       loadStretchesOnMap();
       return;
     }

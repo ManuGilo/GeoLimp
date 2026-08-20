@@ -1,4 +1,4 @@
-﻿/* ==========================================================================
+/* ==========================================================================
    GeoLimp - Executive Reports and PDF Compilation Module
    ========================================================================== */
 
@@ -37,7 +37,7 @@ export function initReports() {
   });
 
   document.getElementById('rep-responsible').addEventListener('input', () => {
-    document.getElementById('rep-preview-footer-resp').innerText = `Resp. TÃ©cnico: ${document.getElementById('rep-responsible').value}`;
+    document.getElementById('rep-preview-footer-resp').innerText = `Resp. Técnico: ${document.getElementById('rep-responsible').value}`;
   });
 
   document.getElementById('rep-compare-start').addEventListener('change', updateReportPreview);
@@ -86,16 +86,16 @@ export async function updateReportPreview() {
   const extPct = totalPlannedExt > 0 ? Math.round((totalExtDone / totalPlannedExt) * 100) : 0;
   const avgEfficiency = totalHours > 0 ? (totalAreaDone / totalHours).toFixed(2) : '0.00';
 
-  document.getElementById('rep-preview-kpi-area').innerText = `${totalAreaDone.toLocaleString()} mÂ²`;
+  document.getElementById('rep-preview-kpi-area').innerText = `${totalAreaDone.toLocaleString()} m²`;
   document.getElementById('rep-preview-kpi-area-pct').innerText = `(${areaPct}% do previsto)`;
 
   document.getElementById('rep-preview-kpi-ext').innerText = `${totalExtDone.toLocaleString()} m`;
   document.getElementById('rep-preview-kpi-ext-pct').innerText = `(${extPct}% do previsto)`;
 
-  document.getElementById('rep-preview-kpi-resid').innerText = `${totalVol.toFixed(1)} mÂ³`;
+  document.getElementById('rep-preview-kpi-resid').innerText = `${totalVol.toFixed(1)} m³`;
   document.getElementById('rep-preview-kpi-resid-bags').innerText = `(${totalBags.toLocaleString()} sacos)`;
 
-  document.getElementById('rep-preview-kpi-prod').innerText = `${avgEfficiency} mÂ²/h-h`;
+  document.getElementById('rep-preview-kpi-prod').innerText = `${avgEfficiency} m²/h-h`;
 
   // 2. COMPARISON METRICS (Date A vs Date B)
   // Cumulative values up to date A
@@ -115,9 +115,9 @@ export async function updateReportPreview() {
   const deltaExt = extB - extA;
   const deltaVol = volB - volA;
 
-  document.getElementById('comp-area-a').innerText = `${areaA.toLocaleString()} mÂ²`;
-  document.getElementById('comp-area-b').innerText = `${areaB.toLocaleString()} mÂ²`;
-  document.getElementById('comp-area-delta').innerText = `${deltaArea >= 0 ? '+' : ''}${deltaArea.toLocaleString()} mÂ²`;
+  document.getElementById('comp-area-a').innerText = `${areaA.toLocaleString()} m²`;
+  document.getElementById('comp-area-b').innerText = `${areaB.toLocaleString()} m²`;
+  document.getElementById('comp-area-delta').innerText = `${deltaArea >= 0 ? '+' : ''}${deltaArea.toLocaleString()} m²`;
   document.getElementById('comp-area-delta').className = deltaArea >= 0 ? 'text-success' : 'text-danger';
 
   document.getElementById('comp-ext-a').innerText = `${extA.toLocaleString()} m`;
@@ -125,10 +125,10 @@ export async function updateReportPreview() {
   document.getElementById('comp-ext-delta').innerText = `${deltaExt >= 0 ? '+' : ''}${deltaExt.toLocaleString()} m`;
   document.getElementById('comp-ext-delta').className = deltaExt >= 0 ? 'text-success' : 'text-danger';
 
-  document.getElementById('comp-vol-a').innerText = `${volA.toFixed(1)} mÂ³`;
-  document.getElementById('comp-vol-b').innerText = `${volB.toFixed(1)} mÂ³`;
-  document.getElementById('comp-vol-delta').innerText = `${deltaVol >= 0 ? '+' : ''}${deltaVol.toFixed(1)} mÂ³`;
-  document.getElementById('comp-vol-delta').className = deltaVol >= 0 ? 'text-danger' : 'text-success'; // waste delta is technically Red for positive, but let's make it standard red color representing removed amount
+  document.getElementById('comp-vol-a').innerText = `${volA.toFixed(1)} m³`;
+  document.getElementById('comp-vol-b').innerText = `${volB.toFixed(1)} m³`;
+  document.getElementById('comp-vol-delta').innerText = `${deltaVol >= 0 ? '+' : ''}${deltaVol.toFixed(1)} m³`;
+  document.getElementById('comp-vol-delta').className = deltaVol >= 0 ? 'text-danger' : 'text-success';
 
   // 3. EVIDENCE PICTURES FOR THE CURRENT PERIOD (Between A and B)
   const periodPhotos = photos.filter(p => p.date >= dateA && p.date <= dateB);
@@ -136,14 +136,14 @@ export async function updateReportPreview() {
   photoGrid.innerHTML = '';
 
   if (periodPhotos.length === 0) {
-    photoGrid.innerHTML = '<span class="text-xs text-muted block py-2" style="grid-column: 1 / -1; text-align:center;">Nenhuma evidÃªncia registrada no perÃ­odo selecionado.</span>';
+    photoGrid.innerHTML = '<span class="text-xs text-muted block py-2" style="grid-column: 1 / -1; text-align:center;">Nenhuma evidência registrada no período selecionado.</span>';
   } else {
     periodPhotos.slice(0, 3).forEach(p => {
       const typeLabel = p.type === 'antes' ? 'Antes' : p.type === 'durante' ? 'Durante' : 'Depois';
       const box = document.createElement('div');
       box.className = 'report-photo-box';
       box.innerHTML = `
-        <img src="${p.image}" alt="EvidÃªncia" />
+        <img src="${p.image}" alt="Evidência" />
         <span>[${typeLabel.toUpperCase()}] ${p.desc || 'Foto Operacional'}</span>
       `;
       photoGrid.appendChild(box);
@@ -159,11 +159,9 @@ export async function updateReportPreview() {
  * Instantiates and draws a static mini representation of channels at a past date.
  */
 function setupMiniMap(elementId, dateLimit, stretches, diaries) {
-  // Clear any existing Leaflet instances
   const container = document.getElementById(elementId);
   if (!container) return;
 
-  // Leaflet requires clean elements
   if (elementId === 'mini-map-a' && miniMapA) {
     miniMapA.remove();
     miniMapA = null;
@@ -182,22 +180,16 @@ function setupMiniMap(elementId, dateLimit, stretches, diaries) {
     boxZoom: false
   }).setView([-8.05, -34.90], 12);
 
-  // Background style
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(mapInstance);
 
-  // Filter logs up to this date to find status of each channel
   const historicalStatus = {};
-  
-  // Initialize all to not-started
   stretches.forEach(s => { historicalStatus[s.id] = 'nao-iniciado'; });
 
-  // Find latest status up to dateLimit
   const logsUpToDate = diaries.filter(d => d.date <= dateLimit).sort((a,b) => new Date(a.date) - new Date(b.date));
   logsUpToDate.forEach(log => {
     historicalStatus[log.stretchId] = log.status;
   });
 
-  // Render stretches with historical colors
   stretches.forEach(s => {
     const latlngs = s.coordinates.map(c => L.latLng(c[0], c[1]));
     const status = historicalStatus[s.id] || 'nao-iniciado';
@@ -218,14 +210,12 @@ function setupMiniMap(elementId, dateLimit, stretches, diaries) {
     }
   });
 
-  // Fit bounds to stretches
   if (stretches.length > 0) {
     const allCoords = [];
     stretches.forEach(s => s.coordinates.forEach(c => allCoords.push(c)));
     mapInstance.fitBounds(L.latLngBounds(allCoords));
   }
 
-  // Save reference
   if (elementId === 'mini-map-a') miniMapA = mapInstance;
   else miniMapB = mapInstance;
 }
@@ -240,37 +230,33 @@ function generatePdfReport() {
 
   const printable = document.getElementById('report-printable-area');
 
-  // Set white styling overrides during screenshot
   printable.style.borderRadius = '0';
   printable.style.boxShadow = 'none';
 
   html2canvas(printable, {
-    scale: 2, // High resolution scale
+    scale: 2,
     useCORS: true
   }).then(canvas => {
-    // Restore styling
     printable.style.borderRadius = '';
     printable.style.boxShadow = '';
 
     const imgData = canvas.toDataURL('image/png');
     const { jsPDF } = window.jspdf;
     
-    // A4 size: 595 x 842 pt
     const pdf = new jsPDF('p', 'pt', 'a4');
     const imgWidth = 595.28;
     const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
-    // Add image fit to A4 page
     pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
     pdf.save('relatorio_evolucao_geolimp.pdf');
 
     btn.disabled = false;
-    btn.innerHTML = '<i class="nav-icon"></i> Gerar RelatÃ³rio Executivo';
-    showToast('RelatÃ³rio PDF compilado e baixado!', 'success');
+    btn.innerHTML = 'Gerar Relatório Executivo';
+    showToast('Relatório PDF compilado e baixado!', 'success');
   }).catch(err => {
     console.error(err);
     btn.disabled = false;
-    btn.innerHTML = 'Gerar RelatÃ³rio Executivo';
+    btn.innerHTML = 'Gerar Relatório Executivo';
     showToast('Erro ao compilar PDF.', 'error');
   });
 }
@@ -283,10 +269,8 @@ function exportEvolutionMapImage() {
   btn.disabled = true;
   btn.innerHTML = 'Capturando...';
 
-  // We capture the #map-container and overlays inside the map-wrapper
   const mapWrapper = document.querySelector('.map-wrapper');
 
-  // Temporarily append a north-arrow and project stamp visual overlay if not there
   let compass = mapWrapper.querySelector('.gis-compass-stamp');
   if (!compass) {
     compass = document.createElement('div');
@@ -304,13 +288,12 @@ function exportEvolutionMapImage() {
     compass.style.fontSize = '12px';
     compass.style.fontWeight = 'bold';
     compass.innerHTML = `
-      <div style="font-size:24px; line-height:1;">â¬†ï¸</div>
+      <div style="font-size:24px; line-height:1;">⬆️</div>
       <div>N</div>
     `;
     mapWrapper.appendChild(compass);
   }
 
-  // Stamp details title overlay
   let stamp = mapWrapper.querySelector('.gis-title-stamp');
   if (!stamp) {
     stamp = document.createElement('div');
@@ -334,20 +317,18 @@ function exportEvolutionMapImage() {
         const pct = total > 0 ? Math.round((done/total)*100) : 0;
         
         stamp.innerHTML = `
-          <h4 style="margin:0; font-size:14px; font-weight:700;">MAPA DE EVOLUÃ‡ÃƒO OPERACIONAL</h4>
-          <span style="font-size:10px; color:#38bdf8;">AvanÃ§o FÃ­sico: ${pct}% concluÃ­do | EmissÃ£o: ${new Date().toLocaleDateString('pt-BR')}</span>
+          <h4 style="margin:0; font-size:14px; font-weight:700;">MAPA DE EVOLUÇÃO OPERACIONAL</h4>
+          <span style="font-size:10px; color:#38bdf8;">Avanço Físico: ${pct}% concluído | Emissão: ${new Date().toLocaleDateString('pt-BR')}</span>
         `;
       });
     });
     mapWrapper.appendChild(stamp);
   }
 
-  // Use html2canvas to capture map area
   html2canvas(mapWrapper, {
     useCORS: true,
     excludeComponents: ['.map-file-card', '.map-layers-card', '.map-paint-card', '.map-timelapse-card', '.leaflet-control-zoom', '.map-detail-panel']
   }).then(canvas => {
-    // Remove temporary GIS elements
     if (compass) compass.remove();
     if (stamp) stamp.remove();
 
@@ -360,15 +341,14 @@ function exportEvolutionMapImage() {
     document.body.removeChild(a);
 
     btn.disabled = false;
-    btn.innerHTML = '<i class="nav-icon"></i> Exportar Imagem de AvanÃ§o';
-    showToast('Imagem do mapa de avanÃ§o exportada com sucesso!', 'success');
+    btn.innerHTML = 'Exportar Imagem de Avanço';
+    showToast('Imagem do mapa de avanço exportada com sucesso!', 'success');
   }).catch(err => {
     console.error(err);
     if (compass) compass.remove();
     if (stamp) stamp.remove();
     btn.disabled = false;
-    btn.innerHTML = 'Exportar Imagem de AvanÃ§o';
+    btn.innerHTML = 'Exportar Imagem de Avanço';
     showToast('Erro ao exportar imagem do mapa.', 'error');
   });
 }
-
