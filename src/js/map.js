@@ -17,7 +17,7 @@ let satelliteTile = null;
 let hybridTileGroup = null;
 
 // State management
-let activeTheme = 'status'; // 'status' or 'productivity'
+let activeTheme = 'status'; // 'status' or 'viabilidade'
 let paintStatus = 'none'; // 'none' or operational status (nao-iniciado, etc.)
 
 // Helper color selectors
@@ -447,30 +447,15 @@ function renderLayerManagerList(stretches) {
 }
 
 /**
- * Determines styling color of stretch based on active Theme (Status vs Productivity)
+ * Determines styling color of stretch based on active Theme (Status Obra vs Viabilidade)
  */
 function getStyleColor(stretch, diaries) {
   if (activeTheme === 'status') {
-    return stretch.color || STATUS_COLORS[stretch.status] || '#64748b';
+    // Status Obra: Returns color corresponding to operational status painted by the user
+    return STATUS_COLORS[stretch.status] || stretch.color || '#64748b';
   } else {
-    // Theme is 'productivity' - Calculate based on average productivity m²/hour from diaries
-    const stretchLogs = diaries.filter(log => log.stretchId === stretch.id && log.area > 0);
-    if (stretchLogs.length === 0) return stretch.color || '#64748b';
-
-    let totalArea = 0;
-    let totalManHours = 0;
-    stretchLogs.forEach(log => {
-      totalArea += log.area;
-      totalManHours += (log.workers * log.hours);
-    });
-
-    const efficiency = totalArea / (totalManHours || 1);
-
-    if (efficiency >= 6) return PRODUCTIVITY_COLORS.alta;
-    if (efficiency >= 4.5) return PRODUCTIVITY_COLORS.boa;
-    if (efficiency >= 3.0) return PRODUCTIVITY_COLORS.media;
-    if (efficiency >= 1.5) return PRODUCTIVITY_COLORS.baixa;
-    return PRODUCTIVITY_COLORS.critica;
+    // Viabilidade: Returns original color coming from imported KMZ/KML/GeoJSON file
+    return stretch.originalColor || stretch.color || '#0ea5e9';
   }
 }
 
@@ -495,20 +480,27 @@ function setupOverlayListeners() {
     });
   });
 
-  // Theme selector toggle
-  document.getElementById('theme-status').addEventListener('click', () => {
-    document.getElementById('theme-status').classList.add('active');
-    document.getElementById('theme-productivity').classList.remove('active');
-    activeTheme = 'status';
-    loadStretchesOnMap();
-  });
+  // Theme selector toggle (Status Obra vs Viabilidade)
+  const themeStatusBtn = document.getElementById('theme-status');
+  const themeViabilidadeBtn = document.getElementById('theme-viabilidade');
 
-  document.getElementById('theme-productivity').addEventListener('click', () => {
-    document.getElementById('theme-productivity').classList.add('active');
-    document.getElementById('theme-status').classList.remove('active');
-    activeTheme = 'productivity';
-    loadStretchesOnMap();
-  });
+  if (themeStatusBtn && themeViabilidadeBtn) {
+    themeStatusBtn.addEventListener('click', () => {
+      themeStatusBtn.classList.add('active');
+      themeViabilidadeBtn.classList.remove('active');
+      activeTheme = 'status';
+      loadStretchesOnMap();
+      showToast('Visualizando Tema: Status da Obra', 'info');
+    });
+
+    themeViabilidadeBtn.addEventListener('click', () => {
+      themeViabilidadeBtn.classList.add('active');
+      themeStatusBtn.classList.remove('active');
+      activeTheme = 'viabilidade';
+      loadStretchesOnMap();
+      showToast('Visualizando Tema: Viabilidade (Cores do Arquivo Importado)', 'info');
+    });
+  }
 
   // Paint status direct colors tool
   document.querySelectorAll('.paint-option').forEach((opt) => {
@@ -837,6 +829,7 @@ async function handleKmlImport(e) {
           coordinates: coordinates,
           type: geometryType,
           color: finalColor,
+          originalColor: finalColor,
           visible: true
         };
 

@@ -24,6 +24,8 @@ export const MOCK_STRETCHES = [
     created: '2026-08-01',
     responsible: 'Eng. Gabriel Santos',
     status: 'em-andamento',
+    color: '#0ea5e9',
+    originalColor: '#0ea5e9',
     observations: 'Canal de drenagem principal da avenida. Alto tráfego nas proximidades, requer sinalização reforçada.',
     coordinates: [
       [-8.0535, -34.8978],
@@ -40,6 +42,8 @@ export const MOCK_STRETCHES = [
     created: '2026-08-01',
     responsible: 'Eng. Gabriel Santos',
     status: 'concluido',
+    color: '#06b6d4',
+    originalColor: '#06b6d4',
     observations: 'Área com alta incidência de resíduos sólidos. Concluída desobstrução mecânica.',
     coordinates: [
       [-8.0255, -34.8912],
@@ -56,6 +60,8 @@ export const MOCK_STRETCHES = [
     created: '2026-08-02',
     responsible: 'Enga. Marina Rocha',
     status: 'nao-iniciado',
+    color: '#10b981',
+    originalColor: '#10b981',
     observations: 'Requer remoção prévia de vegetação densa nas margens. Programado para início em breve.',
     coordinates: [
       [-8.0385, -34.9022],
@@ -72,6 +78,8 @@ export const MOCK_STRETCHES = [
     created: '2026-08-03',
     responsible: 'Eng. Gabriel Santos',
     status: 'retrabalho',
+    color: '#a855f7',
+    originalColor: '#a855f7',
     observations: 'Após chuvas recentes, houve novo assoreamento na foz do canal. Requer novo serviço de dragagem.',
     coordinates: [
       [-8.0588, -34.9050],
@@ -88,6 +96,8 @@ export const MOCK_STRETCHES = [
     created: '2026-08-04',
     responsible: 'Enga. Marina Rocha',
     status: 'bloqueado',
+    color: '#f97316',
+    originalColor: '#f97316',
     observations: 'Obstrução física por interferência de rede de esgoto concessionária. Aguardando liberação técnica.',
     coordinates: [
       [-8.0560, -34.9042],
