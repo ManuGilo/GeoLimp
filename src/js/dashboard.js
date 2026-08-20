@@ -81,77 +81,80 @@ export async function initDashboard() {
   document.getElementById('dash-days-worked').innerText = daysWorked;
   document.getElementById('dash-days-left').innerText = daysRemaining;
 
-  // 4. GOALS METRICS DISPLAY
-  document.getElementById('dash-goal-area-val').innerText = `${goals.area} m²`;
-  document.getElementById('dash-goal-ext-val').innerText = `${goals.extension} m`;
-  document.getElementById('dash-goal-bags-val').innerText = `${goals.bags} sacos`;
-  document.getElementById('dash-goal-vol-val').innerText = `${goals.volume} m³`;
+  // 4. GOALS METRICS DISPLAY (IF PRESENT)
+  const goalAreaVal = document.getElementById('dash-goal-area-val');
+  if (goalAreaVal) {
+    goalAreaVal.innerText = `${goals.area} m²`;
+    document.getElementById('dash-goal-ext-val').innerText = `${goals.extension} m`;
+    document.getElementById('dash-goal-bags-val').innerText = `${goals.bags} sacos`;
+    document.getElementById('dash-goal-vol-val').innerText = `${goals.volume} m³`;
 
-  // Compare actual average daily performance vs goals
-  const dailyAvgArea = totalAreaDone / daysWorked;
-  const dailyAvgExt = totalExtDone / daysWorked;
-  const dailyAvgBags = totalBags / daysWorked;
-  const dailyAvgVol = totalVol / daysWorked;
+    const dailyAvgArea = totalAreaDone / daysWorked;
+    const dailyAvgExt = totalExtDone / daysWorked;
+    const dailyAvgBags = totalBags / daysWorked;
+    const dailyAvgVol = totalVol / daysWorked;
 
-  // Global indicator factor (average ratio of achievement)
-  const ratio = (
-    (dailyAvgArea / goals.area) + 
-    (dailyAvgExt / goals.extension) + 
-    (dailyAvgBags / goals.bags) + 
-    (dailyAvgVol / goals.volume)
-  ) / 4;
+    const ratio = (
+      (dailyAvgArea / goals.area) + 
+      (dailyAvgExt / goals.extension) + 
+      (dailyAvgBags / goals.bags) + 
+      (dailyAvgVol / goals.volume)
+    ) / 4;
 
-  const goalBadge = document.getElementById('dash-goal-status-badge');
-  goalBadge.className = 'goal-indicator-badge';
-  
-  if (ratio >= 1.0) {
-    goalBadge.classList.add('above-meta');
-    goalBadge.querySelector('.text').innerText = 'Acima da Meta';
-  } else if (ratio >= 0.8) {
-    goalBadge.classList.add('within-meta');
-    goalBadge.querySelector('.text').innerText = 'Dentro da Faixa';
-  } else {
-    goalBadge.classList.add('below-meta');
-    goalBadge.querySelector('.text').innerText = 'Abaixo da Meta';
+    const goalBadge = document.getElementById('dash-goal-status-badge');
+    if (goalBadge) {
+      goalBadge.className = 'goal-indicator-badge';
+      if (ratio >= 1.0) {
+        goalBadge.classList.add('above-meta');
+        goalBadge.querySelector('.text').innerText = 'Acima da Meta';
+      } else if (ratio >= 0.8) {
+        goalBadge.classList.add('within-meta');
+        goalBadge.querySelector('.text').innerText = 'Dentro da Faixa';
+      } else {
+        goalBadge.classList.add('below-meta');
+        goalBadge.querySelector('.text').innerText = 'Abaixo da Meta';
+      }
+    }
   }
 
-  // 5. RECORDS CALCULATIONS (BEST / WORST DAYS)
-  // Group logs by date
-  const productionByDate = {};
-  diaries.forEach(d => {
-    if (!productionByDate[d.date]) productionByDate[d.date] = 0;
-    productionByDate[d.date] += d.area;
-  });
+  // 5. RECORDS CALCULATIONS (IF PRESENT)
+  const bestDayValEl = document.getElementById('dash-best-day-val');
+  if (bestDayValEl) {
+    const productionByDate = {};
+    diaries.forEach(d => {
+      if (!productionByDate[d.date]) productionByDate[d.date] = 0;
+      productionByDate[d.date] += d.area;
+    });
 
-  let bestDayDate = '-';
-  let bestDayVal = 0;
-  let worstDayDate = '-';
-  let worstDayVal = Infinity;
+    let bestDayDate = '-';
+    let bestDayVal = 0;
+    let worstDayDate = '-';
+    let worstDayVal = Infinity;
 
-  Object.entries(productionByDate).forEach(([date, val]) => {
-    if (val > bestDayVal) {
-      bestDayVal = val;
-      bestDayDate = date;
-    }
-    if (val < worstDayVal && val > 0) {
-      worstDayVal = val;
-      worstDayDate = date;
-    }
-  });
+    Object.entries(productionByDate).forEach(([date, val]) => {
+      if (val > bestDayVal) {
+        bestDayVal = val;
+        bestDayDate = date;
+      }
+      if (val < worstDayVal && val > 0) {
+        worstDayVal = val;
+        worstDayDate = date;
+      }
+    });
 
-  if (worstDayVal === Infinity) worstDayVal = 0;
+    if (worstDayVal === Infinity) worstDayVal = 0;
 
-  // Format dates to DD/MM
-  const formatDateLabel = (dStr) => {
-    if (dStr === '-') return '-';
-    const p = dStr.split('-');
-    return p.length === 3 ? `${p[2]}/${p[1]}` : dStr;
-  };
+    const formatDateLabel = (dStr) => {
+      if (dStr === '-') return '-';
+      const p = dStr.split('-');
+      return p.length === 3 ? `${p[2]}/${p[1]}` : dStr;
+    };
 
-  document.getElementById('dash-best-day-val').innerText = `${bestDayVal} m²`;
-  document.getElementById('dash-best-day-date').innerText = formatDateLabel(bestDayDate);
-  document.getElementById('dash-worst-day-val').innerText = `${worstDayVal} m²`;
-  document.getElementById('dash-worst-day-date').innerText = formatDateLabel(worstDayDate);
+    bestDayValEl.innerText = `${bestDayVal} m²`;
+    document.getElementById('dash-best-day-date').innerText = formatDateLabel(bestDayDate);
+    document.getElementById('dash-worst-day-val').innerText = `${worstDayVal} m²`;
+    document.getElementById('dash-worst-day-date').innerText = formatDateLabel(worstDayDate);
+  }
 
   // 6. RENDER CHARTS
   renderCurvaS(diaries, totalAreaPlanned);
