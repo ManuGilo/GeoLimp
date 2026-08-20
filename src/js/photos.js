@@ -482,7 +482,7 @@ function updateGoogleAccountUI() {
 
   if (googleAccountToken && googleAccountUser) {
     title.innerText = `Conectado: ${googleAccountUser.name}`;
-    subtitle.innerText = `${googleAccountUser.email} • Álbuns e Fotos sincronizados com o GeoLimp.`;
+    subtitle.innerText = `${googleAccountUser.email} • Álbuns e Fotos sincronizados com o GeoCampo.`;
     connectBtn.style.display = 'none';
     connectedSection.style.display = 'flex';
 

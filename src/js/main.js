@@ -210,7 +210,7 @@ async function _handleExportBackup() {
     
     const a = document.createElement('a');
     a.href = url;
-    a.download = `geolimp_backup_${new Date().toISOString().split('T')[0]}.json`;
+    a.download = `geocampo_backup_${new Date().toISOString().split('T')[0]}.json`;
     a.click();
     URL.revokeObjectURL(url);
     
@@ -478,7 +478,7 @@ function _initPwaAndOffline() {
         deferredPwaPrompt.prompt();
         const { outcome } = await deferredPwaPrompt.userChoice;
         if (outcome === 'accepted') {
-          showToast('GeoLimp instalado com sucesso no seu dispositivo!', 'success');
+          showToast('GeoCampo instalado com sucesso no seu dispositivo!', 'success');
         }
         deferredPwaPrompt = null;
         installBtn.style.display = 'none';
@@ -487,8 +487,8 @@ function _initPwaAndOffline() {
   });
 
   window.addEventListener('appinstalled', () => {
-    console.info('[PWA] GeoLimp was installed.');
-    showToast('GeoLimp instalado!', 'success');
+    console.info('[PWA] GeoCampo was installed.');
+    showToast('GeoCampo instalado!', 'success');
     if (installBtn) installBtn.style.display = 'none';
   });
 }

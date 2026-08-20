@@ -1,5 +1,5 @@
 /* ==========================================================================
-   GeoLimp - IndexedDB Data Access Layer Wrapper
+   GeoCampo - IndexedDB Data Access Layer Wrapper
    ========================================================================== */
 
 const DB_NAME = 'GeoLimpDB';
@@ -164,7 +164,7 @@ export const db = {
     const config = await this.getAll('config');
 
     return {
-      appName: 'GeoLimp',
+      appName: 'GeoCampo',
       version: '1.2.0',
       exportedAt: new Date().toISOString(),
       data: {

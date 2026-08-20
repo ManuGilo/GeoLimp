@@ -1,7 +1,7 @@
 {
-  "name": "GeoLimp - Monitoramento de Canais",
-  "short_name": "GeoLimp",
-  "description": "Sistema Georreferenciado para Monitoramento e Limpeza de Canais de Drenagem",
+  "name": "GeoCampo - Registro Georreferenciado de Dados e Obras",
+  "short_name": "GeoCampo",
+  "description": "Plataforma Georreferenciada para Registro e Monitoramento de Dados de Campo e Obras",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#090d16",

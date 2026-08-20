@@ -897,7 +897,7 @@ async function exportGisData(format) {
     };
 
     fileContent = JSON.stringify(geojson, null, 2);
-    filename = 'geolimp_canais.geojson';
+    filename = 'geocampo_canais.geojson';
     mimeType = 'application/json';
   } else if (format === 'kml') {
     let placemarksKml = '';
@@ -941,12 +941,12 @@ async function exportGisData(format) {
     fileContent = `<?xml version="1.0" encoding="UTF-8"?>
 <kml xmlns="http://www.opengis.net/kml/2.2">
   <Document>
-    <name>Canais GeoLimp</name>
+    <name>Canais GeoCampo</name>
     ${placemarksKml}
   </Document>
 </kml>`;
 
-    filename = 'geolimp_canais.kml';
+    filename = 'geocampo_canais.kml';
     mimeType = 'application/vnd.google-earth.kml+xml';
   }
 

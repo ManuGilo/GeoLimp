@@ -1,8 +1,8 @@
 /* ==========================================================================
-   GeoLimp - Service Worker (100% Offline Mode & Cache Strategy)
+   GeoCampo - Service Worker (100% Offline Mode & Cache Strategy)
    ========================================================================== */
 
-const CACHE_NAME = 'geolimp-cache-v1';
+const CACHE_NAME = 'geocampo-cache-v1';
 
 // Static App Shell and CDN assets to pre-cache for offline capability
 const ASSETS_TO_CACHE = [
@@ -13,6 +13,7 @@ const ASSETS_TO_CACHE = [
   '/src/js/main.js',
   '/src/js/utils.js',
   '/src/js/db.js',
+  '/src/js/geoUtils.js',
   '/src/js/mockData.js',
   '/src/js/map.js',
   '/src/js/dashboard.js',
