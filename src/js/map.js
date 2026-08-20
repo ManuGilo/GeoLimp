@@ -297,8 +297,52 @@ export async function loadStretchesOnMap() {
     mapLayer.addTo(currentLayerGroup);
   });
 
+  // Render photo markers on map
+  await renderPhotoMarkersOnMap();
+
   // Render layer manager list overlay
   renderLayerManagerList(stretches);
+}
+
+/**
+ * Renders interactive camera markers on map for all georeferenced photos in IndexedDB
+ */
+async function renderPhotoMarkersOnMap() {
+  if (!currentLayerGroup) return;
+
+  const photos = await db.getAll('fotos');
+  const stretches = await db.getAll('trechos');
+  const stretchMap = {};
+  stretches.forEach(s => stretchMap[s.id] = s.code);
+
+  photos.forEach(photo => {
+    if (photo.lat && photo.lng) {
+      const typeLabel = photo.type === 'antes' ? 'Antes' : photo.type === 'durante' ? 'Durante' : 'Depois';
+      const stretchCode = stretchMap[photo.stretchId] || 'Vínculo GPS';
+
+      const photoIcon = L.divIcon({
+        className: 'custom-photo-marker',
+        html: `<div style="background: #0ea5e9; color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.5); border: 2px solid #ffffff; cursor: pointer; font-size:14px;">📷</div>`,
+        iconSize: [28, 28],
+        iconAnchor: [14, 14]
+      });
+
+      const marker = L.marker([photo.lat, photo.lng], { icon: photoIcon });
+      const imgContent = photo.image ? `<img src="${photo.image}" style="width:100%; max-height:160px; object-fit:cover; border-radius:6px; margin-bottom:6px;" />` : '';
+
+      marker.bindPopup(`
+        <div style="max-width: 220px; font-family: 'Outfit', sans-serif;">
+          ${imgContent}
+          <div style="font-weight:600; font-size:12px; margin-bottom:2px;">${photo.desc || 'Evidência Fotográfica'}</div>
+          <div style="font-size:11px; color:#0ea5e9;">Trecho: ${stretchCode}</div>
+          <div style="font-size:10px; color:#64748b; margin-top:2px;">Etapa: <strong>${typeLabel}</strong> • ${photo.date || ''} ${photo.time ? 'às ' + photo.time : ''}</div>
+          ${photo.url ? `<a href="${photo.url}" target="_blank" style="display:inline-block; margin-top:6px; font-size:11px; color:#38bdf8; text-decoration:underline;">Ver no Google Fotos ↗</a>` : ''}
+        </div>
+      `);
+
+      marker.addTo(currentLayerGroup);
+    }
+  });
 }
 
 /**
@@ -641,153 +685,169 @@ function extractKmlStyles(xmlDoc) {
 }
 
 /**
- * Handle KML file parsing and adding to Map/DB
+ * Handle KML / KMZ file parsing and adding to Map/DB
  */
-function handleKmlImport(e) {
+async function handleKmlImport(e) {
   const file = e.target.files[0];
   if (!file) return;
 
-  const reader = new FileReader();
-  reader.onload = async function (event) {
-    try {
-      const parser = new DOMParser();
-      const xmlDoc = parser.parseFromString(event.target.result, 'text/xml');
-      
-      const placemarks = xmlDoc.getElementsByTagName('Placemark');
-      if (placemarks.length === 0) {
-        showToast('Nenhum Placemark encontrado no arquivo KML.', 'error');
+  try {
+    let kmlText = '';
+    const isKmz = file.name.toLowerCase().endsWith('.kmz');
+
+    if (isKmz) {
+      if (!window.JSZip) {
+        showToast('Biblioteca JSZip não carregada para processar arquivo KMZ.', 'error');
         return;
       }
+      showToast('Descompactando arquivo KMZ...', 'info');
+      const zip = await window.JSZip.loadAsync(file);
+      const kmlFile = Object.values(zip.files).find(f => f.name.toLowerCase().endsWith('.kml'));
+      if (!kmlFile) {
+        showToast('Nenhum arquivo KML encontrado dentro do KMZ.', 'error');
+        return;
+      }
+      kmlText = await kmlFile.async('text');
+    } else {
+      kmlText = await file.text();
+    }
 
-      // Extract document styles table
-      const docStyles = extractKmlStyles(xmlDoc);
+    const parser = new DOMParser();
+    const xmlDoc = parser.parseFromString(kmlText, 'text/xml');
+    
+    const placemarks = xmlDoc.getElementsByTagName('Placemark');
+    if (placemarks.length === 0) {
+      showToast('Nenhum Placemark encontrado no arquivo KML/KMZ.', 'error');
+      return;
+    }
 
-      let importCount = 0;
-      let allImportedCoords = [];
-      
-      for (let i = 0; i < placemarks.length; i++) {
-        const placemark = placemarks[i];
-        const nameNode = placemark.getElementsByTagName('name')[0];
-        const name = nameNode ? nameNode.textContent : `Canal Importado ${i + 1}`;
-        const code = `CN-IMP-${Math.floor(100 + Math.random() * 900)}`;
+    // Extract document styles table
+    const docStyles = extractKmlStyles(xmlDoc);
 
-        // Extract color from styleUrl or inline Style
-        let extractedColor = null;
-        const styleUrlNode = placemark.getElementsByTagName('styleUrl')[0];
-        if (styleUrlNode) {
-          const url = styleUrlNode.textContent.trim();
-          if (docStyles[url]) {
-            extractedColor = docStyles[url];
-          }
-        }
+    let importCount = 0;
+    let allImportedCoords = [];
+    
+    for (let i = 0; i < placemarks.length; i++) {
+      const placemark = placemarks[i];
+      const nameNode = placemark.getElementsByTagName('name')[0];
+      const name = nameNode ? nameNode.textContent : `Canal Importado ${i + 1}`;
+      const code = `CN-IMP-${Math.floor(100 + Math.random() * 900)}`;
 
-        if (!extractedColor) {
-          const inlineStyle = placemark.getElementsByTagName('Style')[0];
-          if (inlineStyle) {
-            const lineStyle = inlineStyle.getElementsByTagName('LineStyle')[0];
-            const polyStyle = inlineStyle.getElementsByTagName('PolyStyle')[0];
-            const colorNode = (lineStyle && lineStyle.getElementsByTagName('color')[0]) ||
-                              (polyStyle && polyStyle.getElementsByTagName('color')[0]) ||
-                              inlineStyle.getElementsByTagName('color')[0];
-            if (colorNode) {
-              extractedColor = kmlColorToHex(colorNode.textContent);
-            }
-          }
-        }
-
-        // Generate dynamic distinct color if none extracted
-        const defaultPalette = ['#0ea5e9', '#06b6d4', '#10b981', '#a855f7', '#f97316', '#eab308'];
-        const finalColor = extractedColor || defaultPalette[i % defaultPalette.length];
-
-        // Extract Coordinates
-        let coordinates = [];
-        let geometryType = 'polyline';
-
-        // Check LineString coordinates
-        const lineNode = placemark.getElementsByTagName('LineString')[0] || placemark.getElementsByTagName('Polygon')[0];
-        if (lineNode) {
-          const coordTextNode = lineNode.getElementsByTagName('coordinates')[0];
-          if (coordTextNode) {
-            const coordText = coordTextNode.textContent.trim();
-            const points = coordText.split(/\s+/);
-            
-            points.forEach(point => {
-              const parts = point.split(',');
-              if (parts.length >= 2) {
-                const lng = parseFloat(parts[0]);
-                const lat = parseFloat(parts[1]);
-                if (!isNaN(lat) && !isNaN(lng)) {
-                  coordinates.push([lat, lng]);
-                  allImportedCoords.push([lat, lng]);
-                }
-              }
-            });
-          }
-          
-          if (placemark.getElementsByTagName('Polygon')[0]) {
-            geometryType = 'polygon';
-          }
-        }
-
-        if (coordinates.length > 1) {
-          // Calculate length
-          let extension = 0;
-          let area = 0;
-          
-          const leafletLatLngs = coordinates.map(c => L.latLng(c[0], c[1]));
-          
-          if (geometryType === 'polyline') {
-            extension = calculateLineLength(leafletLatLngs);
-            area = extension * 5;
-          } else {
-            area = calculatePolygonArea(leafletLatLngs);
-            extension = calculateLineLength(leafletLatLngs);
-          }
-
-          const newStretch = {
-            id: 'CN-IMP-' + Date.now() + '-' + i,
-            name: name,
-            code: code,
-            extension: Math.round(extension),
-            area: Math.round(area),
-            responsible: 'Responsável Técnico',
-            created: new Date().toISOString().split('T')[0],
-            status: 'nao-iniciado',
-            observations: 'Importado via arquivo KML.',
-            coordinates: coordinates,
-            type: geometryType,
-            color: finalColor,
-            visible: true
-          };
-
-          await db.put('trechos', newStretch);
-          importCount++;
+      // Extract color from styleUrl or inline Style
+      let extractedColor = null;
+      const styleUrlNode = placemark.getElementsByTagName('styleUrl')[0];
+      if (styleUrlNode) {
+        const url = styleUrlNode.textContent.trim();
+        if (docStyles[url]) {
+          extractedColor = docStyles[url];
         }
       }
 
-      showToast(`${importCount} trechos importados com cores e geometrias!`, 'success');
-      loadStretchesOnMap();
-      refreshAllViews();
-      
-      // Auto fit map zoom to frame all imported KML geometries perfectly
-      if (allImportedCoords.length > 0 && mapInstance) {
-        const bounds = L.latLngBounds(allImportedCoords);
-        if (bounds.isValid()) {
-          mapInstance.fitBounds(bounds, {
-            padding: [60, 60],
-            maxZoom: 17,
-            animate: true,
-            duration: 0.8
+      if (!extractedColor) {
+        const inlineStyle = placemark.getElementsByTagName('Style')[0];
+        if (inlineStyle) {
+          const lineStyle = inlineStyle.getElementsByTagName('LineStyle')[0];
+          const polyStyle = inlineStyle.getElementsByTagName('PolyStyle')[0];
+          const colorNode = (lineStyle && lineStyle.getElementsByTagName('color')[0]) ||
+                            (polyStyle && polyStyle.getElementsByTagName('color')[0]) ||
+                            inlineStyle.getElementsByTagName('color')[0];
+          if (colorNode) {
+            extractedColor = kmlColorToHex(colorNode.textContent);
+          }
+        }
+      }
+
+      // Generate dynamic distinct color if none extracted
+      const defaultPalette = ['#0ea5e9', '#06b6d4', '#10b981', '#a855f7', '#f97316', '#eab308'];
+      const finalColor = extractedColor || defaultPalette[i % defaultPalette.length];
+
+      // Extract Coordinates
+      let coordinates = [];
+      let geometryType = 'polyline';
+
+      // Check LineString coordinates
+      const lineNode = placemark.getElementsByTagName('LineString')[0] || placemark.getElementsByTagName('Polygon')[0];
+      if (lineNode) {
+        const coordTextNode = lineNode.getElementsByTagName('coordinates')[0];
+        if (coordTextNode) {
+          const coordText = coordTextNode.textContent.trim();
+          const points = coordText.split(/\s+/);
+          
+          points.forEach(point => {
+            const parts = point.split(',');
+            if (parts.length >= 2) {
+              const lng = parseFloat(parts[0]);
+              const lat = parseFloat(parts[1]);
+              if (!isNaN(lat) && !isNaN(lng)) {
+                coordinates.push([lat, lng]);
+                allImportedCoords.push([lat, lng]);
+              }
+            }
           });
         }
+        
+        if (placemark.getElementsByTagName('Polygon')[0]) {
+          geometryType = 'polygon';
+        }
       }
-    } catch (err) {
-      console.error(err);
-      showToast('Erro ao processar arquivo KML. Verifique o formato.', 'error');
-    }
-  };
 
-  reader.readAsText(file);
+      if (coordinates.length > 1) {
+        // Calculate length
+        let extension = 0;
+        let area = 0;
+        
+        const leafletLatLngs = coordinates.map(c => L.latLng(c[0], c[1]));
+        
+        if (geometryType === 'polyline') {
+          extension = calculateLineLength(leafletLatLngs);
+          area = extension * 5;
+        } else {
+          area = calculatePolygonArea(leafletLatLngs);
+          extension = calculateLineLength(leafletLatLngs);
+        }
+
+        const newStretch = {
+          id: 'CN-IMP-' + Date.now() + '-' + i,
+          name: name,
+          code: code,
+          extension: Math.round(extension),
+          area: Math.round(area),
+          responsible: 'Responsável Técnico',
+          created: new Date().toISOString().split('T')[0],
+          status: 'nao-iniciado',
+          observations: `Importado via arquivo ${isKmz ? 'KMZ' : 'KML'}.`,
+          coordinates: coordinates,
+          type: geometryType,
+          color: finalColor,
+          visible: true
+        };
+
+        await db.put('trechos', newStretch);
+        importCount++;
+      }
+    }
+
+    showToast(`${importCount} trechos importados com cores e geometrias!`, 'success');
+    loadStretchesOnMap();
+    refreshAllViews();
+    
+    // Auto fit map zoom to frame all imported KML/KMZ geometries perfectly
+    if (allImportedCoords.length > 0 && mapInstance) {
+      const bounds = L.latLngBounds(allImportedCoords);
+      if (bounds.isValid()) {
+        mapInstance.fitBounds(bounds, {
+          padding: [60, 60],
+          maxZoom: 17,
+          animate: true,
+          duration: 0.8
+        });
+      }
+    }
+  } catch (err) {
+    console.error(err);
+    showToast('Erro ao processar arquivo KML/KMZ. Verifique o formato.', 'error');
+  }
+
   // Reset input
   e.target.value = '';
 }

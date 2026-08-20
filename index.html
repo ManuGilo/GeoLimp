@@ -176,11 +176,14 @@
 
             <!-- Map Files Actions (Import/Export) -->
             <div class="map-overlay-panel map-file-card">
-              <h3>Ficheiros GIS</h3>
+              <h3>Ficheiros GIS & Fotos</h3>
               <div class="flex-column gap-2">
                 <button class="btn btn-secondary flex-center gap-1" id="btn-import-kml">
-                  <i data-lucide="upload"></i> Importar KML/KMZ
+                  <i data-lucide="upload"></i> Importar KMZ / KML
                   <input type="file" id="kml-file-input" accept=".kml,.kmz" style="display:none;" />
+                </button>
+                <button class="btn btn-success flex-center gap-1" id="btn-open-gphotos-map">
+                  <i data-lucide="cloud"></i> Google Fotos / Raio GPS
                 </button>
                 <div class="dropdown">
                   <button class="btn btn-primary flex-center gap-1 w-full" id="btn-export-dropdown">
@@ -723,9 +726,14 @@
                     </div>
                   </div>
 
-                  <button type="submit" class="btn btn-primary flex-center gap-1 shrink-0" id="btn-save-photo">
-                    <i data-lucide="upload-cloud"></i> Anexar Foto
-                  </button>
+                  <div class="flex gap-2 shrink-0">
+                    <button type="submit" class="btn btn-primary flex-center gap-1" id="btn-save-photo">
+                      <i data-lucide="upload-cloud"></i> Anexar Foto
+                    </button>
+                    <button type="button" class="btn btn-success flex-center gap-1" id="btn-open-gphotos-gallery">
+                      <i data-lucide="cloud"></i> Conectar Google Fotos / Raio GPS
+                    </button>
+                  </div>
                 </form>
               </div>
             </div>
@@ -1203,6 +1211,135 @@
     </div>
   </div>
 
+  <!-- MODAL: GOOGLE PHOTOS & BUFFER RADIUS AUTO-ASSOCIATION -->
+  <div class="modal-backdrop" id="google-photos-modal">
+    <div class="modal-container w-700" style="max-width: 850px;">
+      <div class="modal-header">
+        <h3><i data-lucide="cloud" class="text-primary inline-block mr-1"></i> Conectar Google Fotos & Associação Espacial por Raio</h3>
+        <button class="close-btn" id="close-gphotos-modal-btn">&times;</button>
+      </div>
+      <div class="modal-body flex-column gap-4">
+        <!-- Buffer Radius Settings -->
+        <div class="bg-card-subtle p-3 rounded flex align-center justify-between gap-4 border" style="background: rgba(255,255,255,0.03);">
+          <div>
+            <strong class="block text-sm">Raio de Tolerância GPS (Buffer Espacial)</strong>
+            <span class="text-xs text-muted">Fotos com coordenadas dentro deste raio serão vinculadas automaticamente ao trecho de canal mais próximo.</span>
+          </div>
+          <div class="flex align-center gap-2 shrink-0">
+            <input type="range" id="gphotos-radius-slider" min="10" max="300" step="10" value="50" style="width: 120px;" />
+            <span id="gphotos-radius-display" class="badge badge-primary" style="font-size: 0.9rem; padding: 0.35rem 0.65rem;">50 metros</span>
+          </div>
+        </div>
+
+        <!-- Import Sources Tabs -->
+        <div class="card p-3 border">
+          <div class="flex gap-2 border-bottom pb-2 mb-3">
+            <button type="button" class="btn btn-secondary btn-sm active" id="tab-gphotos-account">🔑 Conectar Conta Google</button>
+            <button type="button" class="btn btn-secondary btn-sm" id="tab-gphotos-files">📁 Upload de Fotos em Lote / Takeout</button>
+            <button type="button" class="btn btn-secondary btn-sm" id="tab-gphotos-link">🔗 Link do Google Fotos</button>
+          </div>
+
+          <!-- Tab Content: Google Account Sign-In & Photos Sync -->
+          <div id="gphotos-tab-account-content" class="flex-column gap-3">
+            <div class="bg-card-subtle p-3 rounded border flex justify-between align-center" style="background: rgba(255,255,255,0.03);" id="gphotos-account-status-card">
+              <div class="flex align-center gap-3">
+                <div style="background: #4285F4; color: white; width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.1rem;" id="gphotos-avatar-badge">G</div>
+                <div>
+                  <strong class="block text-sm" id="gphotos-user-status-title">Associar Conta do Google Fotos</strong>
+                  <span class="text-xs text-muted" id="gphotos-user-status-subtitle">Conecte sua conta do Google para importar álbuns e sincronizar fotos da nuvem.</span>
+                </div>
+              </div>
+              <button type="button" class="btn btn-primary flex-center gap-1" id="btn-gphotos-connect-google" style="background: #4285F4; border-color: #4285F4;">
+                <i data-lucide="log-in"></i> Conectar com Google
+              </button>
+            </div>
+
+            <!-- Connected View: Albums Selector -->
+            <div id="gphotos-connected-section" class="flex-column gap-2" style="display:none;">
+              <div class="flex justify-between align-center">
+                <label class="text-xs font-bold text-primary">Selecione um Álbum da sua Conta Google Fotos:</label>
+                <button type="button" class="btn btn-secondary btn-sm" id="btn-gphotos-disconnect">Desconectar Conta</button>
+              </div>
+              <div class="flex gap-2">
+                <select id="gphotos-album-select" class="form-control flex-1" style="font-size:0.85rem;">
+                  <option value="">Selecione um álbum...</option>
+                </select>
+                <button type="button" class="btn btn-primary btn-sm shrink-0" id="btn-gphotos-import-album">
+                  <i data-lucide="download-cloud"></i> Importar Fotos do Álbum
+                </button>
+              </div>
+            </div>
+
+            <!-- Advanced Config: OAuth Client ID -->
+            <details class="text-xs text-muted">
+              <summary style="cursor:pointer;" class="text-primary">⚙️ Configurações da API do Google (Client ID OAuth 2.0)</summary>
+              <div class="mt-2 flex-column gap-1 p-2 border rounded">
+                <label>ID do Cliente OAuth (Google Cloud Console):</label>
+                <div class="flex gap-2">
+                  <input type="text" id="gphotos-client-id-input" placeholder="ex: 123456789-abc.apps.googleusercontent.com" class="form-control" style="font-size:0.75rem;" />
+                  <button type="button" class="btn btn-secondary btn-sm" id="btn-save-gphotos-client-id">Salvar ID</button>
+                </div>
+              </div>
+            </details>
+          </div>
+
+          <!-- Tab Content: Batch Files Upload -->
+          <div id="gphotos-tab-files-content" class="flex-column gap-2" style="display:none;">
+            <label class="text-xs text-muted">Selecione múltiplas fotos (JPG, PNG) ou fotos com arquivos .json do Google Takeout:</label>
+            <input type="file" id="gphotos-batch-file-input" multiple accept="image/*,.json" class="form-control" />
+            <span class="text-xs text-muted">💡 As coordenadas GPS (latitude, longitude, data/hora) serão extraídas do cabeçalho EXIF da imagem ou do arquivo .json correspondente.</span>
+          </div>
+
+          <!-- Tab Content: Google Photos Link -->
+          <div id="gphotos-tab-link-content" class="flex-column gap-2" style="display:none;">
+            <label class="text-xs text-muted">Cole o Link do Álbum ou Foto do Google Fotos:</label>
+            <input type="url" id="gphotos-url-input" placeholder="https://photos.app.goo.gl/... ou https://photos.google.com/share/..." class="form-control" />
+            <div class="flex gap-2 align-center mt-1">
+              <input type="text" id="gphotos-manual-coords" placeholder="-8.0500, -34.9000 (Lat, Lng opcional se o link for público)" class="form-control" style="font-size:0.8rem;" />
+              <button type="button" class="btn btn-secondary btn-sm shrink-0" id="btn-add-gphotos-link">Adicionar Link</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Matched Preview Table -->
+        <div class="flex-column gap-2">
+          <div class="flex justify-between align-center">
+            <strong class="text-sm">Pré-visualização de Associação por Raio (<span id="gphotos-count-matched">0</span> fotos)</strong>
+            <button type="button" class="btn btn-secondary btn-sm" id="btn-gphotos-recalculate">Recalcular Distâncias</button>
+          </div>
+          
+          <div style="max-height: 220px; overflow-y: auto;" class="border rounded">
+            <table class="table" style="font-size: 0.8rem;">
+              <thead>
+                <tr>
+                  <th>Miniatura</th>
+                  <th>Arquivo / Origem</th>
+                  <th>Coordenadas GPS</th>
+                  <th>Canal Mais Próximo</th>
+                  <th>Distância</th>
+                  <th>Etapa Obra</th>
+                </tr>
+              </thead>
+              <tbody id="gphotos-preview-table-body">
+                <tr>
+                  <td colspan="6" class="text-center text-muted py-4">Nenhuma foto selecionada. Adicione arquivos ou links acima.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Modal Actions -->
+        <div class="flex justify-end gap-2 mt-2">
+          <button type="button" class="btn btn-secondary" id="btn-cancel-gphotos">Cancelar</button>
+          <button type="button" class="btn btn-success flex-center gap-1" id="btn-confirm-gphotos-import" disabled>
+            <i data-lucide="check-circle"></i> Confirmar e Salvar Evidências
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- TOAST NOTIFICATIONS -->
   <div class="toast-container" id="toast-container"></div>
 
@@ -1223,6 +1360,15 @@
   
   <!-- html2canvas -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+  <!-- JSZip (for KMZ parsing) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+  <!-- exifr (for EXIF photo GPS extraction) -->
+  <script src="https://cdn.jsdelivr.net/npm/exifr/dist/full.umd.js"></script>
+
+  <!-- Google Identity Services (Google Sign-In & Photos API) -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
 
   <!-- App Entry Scripts -->
   <script type="module" src="/src/js/main.js"></script>

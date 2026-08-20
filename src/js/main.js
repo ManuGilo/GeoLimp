@@ -64,6 +64,8 @@ function _dismissToast(toast) {
 export async function refreshAllViews() {
   if (_modulesInitialized.has('map')) loadStretchesOnMap();
   if (_modulesInitialized.has('dashboard') || _modulesInitialized.has('teams')) initDashboard();
+  if (_modulesInitialized.has('photos')) loadPhotoGallery();
+  if (window.lucide) window.lucide.createIcons();
 }
 
 // ===========================================================================
