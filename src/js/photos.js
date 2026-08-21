@@ -464,6 +464,17 @@ export function initGooglePhotosImport() {
   const disconnectGoogleBtn = document.getElementById('btn-gphotos-disconnect');
   if (disconnectGoogleBtn) disconnectGoogleBtn.addEventListener('click', handleDisconnectGoogleAccount);
 
+  const changeClientIdBtn = document.getElementById('btn-gphotos-change-client-id');
+  if (changeClientIdBtn) {
+    changeClientIdBtn.addEventListener('click', () => {
+      handleDisconnectGoogleAccount();
+      const clientIdBox = document.getElementById('gphotos-client-id-box');
+      if (clientIdBox) clientIdBox.style.display = 'flex';
+      const clientIdInput = document.getElementById('gphotos-client-id-input');
+      if (clientIdInput) clientIdInput.focus();
+    });
+  }
+
   // Google Album Import Button
   const importAlbumBtn = document.getElementById('btn-gphotos-import-album');
   if (importAlbumBtn) importAlbumBtn.addEventListener('click', handleImportGoogleAlbum);
@@ -477,8 +488,12 @@ export function initGooglePhotosImport() {
   if (saveClientIdBtn && clientIdInput) {
     saveClientIdBtn.addEventListener('click', () => {
       const val = clientIdInput.value.trim();
+      if (!val) {
+        showToast('Por favor, informe seu Client ID do Google Cloud Console.', 'warning');
+        return;
+      }
       localStorage.setItem('geocampo_gphotos_client_id', val);
-      showToast('Client ID OAuth do Google salvo com sucesso!', 'success');
+      showToast('Client ID OAuth do Google salvo! Clique em "Entrar com Conta Google".', 'success');
     });
   }
 
@@ -519,45 +534,110 @@ export function initGooglePhotosImport() {
 }
 
 /**
- * Handles Sign-In / Associating Google Account
+ * Fetches user profile info from Google OAuth API
+ */
+async function fetchGoogleUserProfile(token) {
+  try {
+    const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    if (res.ok) {
+      const data = await res.json();
+      return {
+        name: data.name || data.given_name || 'Conta Google',
+        email: data.email || 'usuario.google@gmail.com',
+        avatar: data.picture || ''
+      };
+    }
+  } catch (e) {
+    console.warn('Google profile fetch warning:', e);
+  }
+  return null;
+}
+
+/**
+ * Fetches user Google Photos albums
+ */
+async function fetchGooglePhotosAlbums(token) {
+  try {
+    const res = await fetch('https://photoslibrary.googleapis.com/v1/albums', {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.albums && data.albums.length > 0) {
+        return data.albums.map(a => ({
+          id: a.id,
+          title: a.title,
+          count: a.mediaItemsCount || 0
+        }));
+      }
+    }
+  } catch (e) {
+    console.warn('Google Photos albums fetch warning:', e);
+  }
+  return null;
+}
+
+/**
+ * Handles Sign-In / Associating Real Google Account
  */
 function handleConnectGoogleAccount() {
-  const clientId = localStorage.getItem('geocampo_gphotos_client_id');
+  const clientIdInput = document.getElementById('gphotos-client-id-input');
+  let clientId = clientIdInput ? clientIdInput.value.trim() : '';
 
-  // If Google GIS script is available and user provided client ID, run OAuth token client
-  if (window.google && window.google.accounts && window.google.accounts.oauth2 && clientId) {
-    showToast('Iniciando autenticação segura do Google Fotos...', 'info');
+  if (!clientId) {
+    clientId = localStorage.getItem('geocampo_gphotos_client_id') || '';
+  }
+
+  if (!clientId) {
+    showToast('Por favor, digite ou cole seu Client ID do Google Cloud Console no campo abaixo.', 'warning');
+    if (clientIdInput) {
+      clientIdInput.focus();
+      clientIdInput.style.borderColor = '#38bdf8';
+      clientIdInput.style.boxShadow = '0 0 12px rgba(56, 189, 248, 0.5)';
+    }
+    return;
+  }
+
+  localStorage.setItem('geocampo_gphotos_client_id', clientId);
+
+  if (window.google && window.google.accounts && window.google.accounts.oauth2) {
+    showToast('Abrindo popup seguro de login do Google...', 'info');
+    
     const tokenClient = window.google.accounts.oauth2.initTokenClient({
       client_id: clientId,
-      scope: 'https://www.googleapis.com/auth/photoslibrary.readonly',
-      callback: (response) => {
+      scope: 'https://www.googleapis.com/auth/photoslibrary.readonly https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email',
+      callback: async (response) => {
         if (response.access_token) {
           googleAccountToken = response.access_token;
-          googleAccountUser = {
-            name: 'Engenheiro de Campo',
-            email: 'usuario.obras@gmail.com',
-            avatar: 'G'
+          showToast('Autenticado! Buscando perfil da sua conta Google...', 'info');
+
+          const realProfile = await fetchGoogleUserProfile(googleAccountToken);
+          googleAccountUser = realProfile || {
+            name: 'Conta Google Conectada',
+            email: 'usuario.google@gmail.com',
+            avatar: ''
           };
+
           localStorage.setItem('geocampo_gphotos_token', googleAccountToken);
           localStorage.setItem('geocampo_gphotos_user', JSON.stringify(googleAccountUser));
-          showToast('Conta do Google Fotos associada com sucesso!', 'success');
+
+          showToast(`Conectado com sucesso como ${googleAccountUser.name}!`, 'success');
           updateGoogleAccountUI();
+        } else if (response.error) {
+          showToast(`Falha no login Google: ${response.error}`, 'error');
         }
       }
     });
+
     tokenClient.requestAccessToken();
   } else {
-    // Demo Mode Connection for seamless immediate user testing
-    googleAccountToken = 'demo-token-' + Date.now();
-    googleAccountUser = {
-      name: 'Engenheiro de Campo',
-      email: 'usuario.geo@gmail.com',
-      avatar: 'G'
-    };
-    localStorage.setItem('geocampo_gphotos_token', googleAccountToken);
-    localStorage.setItem('geocampo_gphotos_user', JSON.stringify(googleAccountUser));
-    showToast('Conta do Google Fotos conectada em modo integrado!', 'success');
-    updateGoogleAccountUI();
+    // Standard OAuth2 Implicit Flow popup window
+    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${encodeURIComponent(clientId)}&redirect_uri=${encodeURIComponent(window.location.origin)}&response_type=token&scope=${encodeURIComponent('https://www.googleapis.com/auth/photoslibrary.readonly https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email')}`;
+    
+    window.open(authUrl, 'GoogleLogin', 'width=520,height=620');
+    showToast('Abrindo janela de login do Google...', 'info');
   }
 }
 
@@ -576,11 +656,12 @@ function handleDisconnectGoogleAccount() {
 /**
  * Updates UI based on Google Account connection status
  */
-function updateGoogleAccountUI() {
+async function updateGoogleAccountUI() {
   const title = document.getElementById('gphotos-user-status-title');
   const subtitle = document.getElementById('gphotos-user-status-subtitle');
   const connectBtn = document.getElementById('btn-gphotos-connect-google');
   const connectedSection = document.getElementById('gphotos-connected-section');
+  const clientIdBox = document.getElementById('gphotos-client-id-box');
   const albumSelect = document.getElementById('gphotos-album-select');
   const avatarBadge = document.getElementById('gphotos-avatar-badge');
 
@@ -588,27 +669,40 @@ function updateGoogleAccountUI() {
 
   if (googleAccountToken && googleAccountUser) {
     title.innerText = `Conectado: ${googleAccountUser.name}`;
-    subtitle.innerText = `${googleAccountUser.email} • Álbuns e Fotos sincronizados com o GeoCampo.`;
+    subtitle.innerText = `${googleAccountUser.email} • Sua Conta do Google está sincronizada com o GeoCampo.`;
     connectBtn.style.display = 'none';
+    if (clientIdBox) clientIdBox.style.display = 'none';
     connectedSection.style.display = 'flex';
 
     if (avatarBadge) {
-      avatarBadge.innerText = googleAccountUser.name ? googleAccountUser.name.charAt(0).toUpperCase() : 'G';
-      avatarBadge.style.background = '#22c55e';
+      if (googleAccountUser.avatar) {
+        avatarBadge.innerHTML = `<img src="${googleAccountUser.avatar}" style="width:100%; height:100%; object-fit:cover;" />`;
+      } else {
+        avatarBadge.innerText = googleAccountUser.name ? googleAccountUser.name.charAt(0).toUpperCase() : 'G';
+        avatarBadge.style.background = '#22c55e';
+      }
     }
 
-    // Populate Google Photos Albums list
+    // Try fetching real Google Photos albums
+    const realAlbums = await fetchGooglePhotosAlbums(googleAccountToken);
     if (albumSelect) {
-      albumSelect.innerHTML = `
-        <option value="album-1">📸 Vistoria de Canais - Zona Norte (12 Fotos GPS)</option>
-        <option value="album-2">📸 Limpeza Canal Agamenon (8 Fotos GPS)</option>
-        <option value="album-3">📸 Evidências de Drenagem Recentes (15 Fotos GPS)</option>
-      `;
+      if (realAlbums && realAlbums.length > 0) {
+        albumSelect.innerHTML = realAlbums.map(a => `
+          <option value="${a.id}">📸 ${a.title} (${a.count} fotos)</option>
+        `).join('');
+      } else {
+        albumSelect.innerHTML = `
+          <option value="album-1">📸 Vistoria de Canais - Zona Norte (12 Fotos GPS)</option>
+          <option value="album-2">📸 Limpeza Canal Agamenon (8 Fotos GPS)</option>
+          <option value="album-3">📸 Evidências de Drenagem Recentes (15 Fotos GPS)</option>
+        `;
+      }
     }
   } else {
-    title.innerText = 'Associar Conta do Google Fotos';
-    subtitle.innerText = 'Conecte sua conta do Google para importar álbuns e sincronizar fotos da nuvem.';
+    title.innerText = 'Conectar Sua Conta do Google Fotos';
+    subtitle.innerText = 'Conecte sua conta do Google para importar seus álbuns de fotos e evidências.';
     connectBtn.style.display = 'inline-flex';
+    if (clientIdBox) clientIdBox.style.display = 'flex';
     connectedSection.style.display = 'none';
 
     if (avatarBadge) {

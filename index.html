@@ -1206,24 +1206,42 @@
 
           <!-- Tab Content: Google Account Sign-In & Photos Sync -->
           <div id="gphotos-tab-account-content" class="flex-column gap-3">
-            <div class="bg-card-subtle p-3 rounded border flex justify-between align-center" style="background: rgba(255,255,255,0.03);" id="gphotos-account-status-card">
-              <div class="flex align-center gap-3">
-                <div style="background: #4285F4; color: white; width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.1rem;" id="gphotos-avatar-badge">G</div>
-                <div>
-                  <strong class="block text-sm" id="gphotos-user-status-title">Associar Conta do Google Fotos</strong>
-                  <span class="text-xs text-muted" id="gphotos-user-status-subtitle">Conecte sua conta do Google para importar álbuns e sincronizar fotos da nuvem.</span>
+            <div class="bg-card-subtle p-3 rounded border flex-column gap-3" style="background: rgba(255,255,255,0.03);" id="gphotos-account-status-card">
+              <div class="flex justify-between align-center">
+                <div class="flex align-center gap-3">
+                  <div style="background: #4285F4; color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.1rem; overflow:hidden;" id="gphotos-avatar-badge">G</div>
+                  <div>
+                    <strong class="block text-sm" id="gphotos-user-status-title">Conectar Sua Conta do Google Fotos</strong>
+                    <span class="text-xs text-muted" id="gphotos-user-status-subtitle">Conecte sua conta do Google para importar seus álbuns de fotos e evidências.</span>
+                  </div>
                 </div>
+                <button type="button" class="btn btn-primary flex-center gap-1" id="btn-gphotos-connect-google" style="background: #4285F4; border-color: #4285F4;">
+                  <i data-lucide="log-in"></i> Entrar com Conta Google
+                </button>
               </div>
-              <button type="button" class="btn btn-primary flex-center gap-1" id="btn-gphotos-connect-google" style="background: #4285F4; border-color: #4285F4;">
-                <i data-lucide="log-in"></i> Conectar com Google
-              </button>
+
+              <!-- Google OAuth Client ID Configuration Box -->
+              <div id="gphotos-client-id-box" class="p-3 border rounded flex-column gap-2" style="background: rgba(66, 133, 244, 0.08); border-color: rgba(66, 133, 244, 0.3);">
+                <div class="flex justify-between align-center">
+                  <span class="text-xs font-bold text-primary">⚙️ ID do Cliente OAuth 2.0 do Google (Google Cloud Console):</span>
+                  <a href="https://console.cloud.google.com/apis/credentials" target="_blank" class="text-xs text-primary" style="text-decoration:underline;">Como criar meu Client ID? ↗</a>
+                </div>
+                <div class="flex gap-2">
+                  <input type="text" id="gphotos-client-id-input" placeholder="Cole seu Client ID (ex: 123456789-abc.apps.googleusercontent.com)" class="form-control flex-1" style="font-size:0.8rem;" />
+                  <button type="button" class="btn btn-secondary btn-sm" id="btn-save-gphotos-client-id">Salvar Client ID</button>
+                </div>
+                <span class="text-xs text-muted">Para conectar sua conta real do Google Fotos, insira o <strong>Client ID</strong> gerado no seu Google Cloud Console.</span>
+              </div>
             </div>
 
             <!-- Connected View: Albums Selector -->
             <div id="gphotos-connected-section" class="flex-column gap-2" style="display:none;">
               <div class="flex justify-between align-center">
                 <label class="text-xs font-bold text-primary">Selecione um Álbum da sua Conta Google Fotos:</label>
-                <button type="button" class="btn btn-secondary btn-sm" id="btn-gphotos-disconnect">Desconectar Conta</button>
+                <div class="flex gap-2">
+                  <button type="button" class="btn btn-secondary btn-sm" id="btn-gphotos-change-client-id">⚙️ Alterar Client ID</button>
+                  <button type="button" class="btn btn-danger btn-sm" id="btn-gphotos-disconnect">Desconectar Conta</button>
+                </div>
               </div>
               <div class="flex gap-2">
                 <select id="gphotos-album-select" class="form-control flex-1" style="font-size:0.85rem;">
@@ -1234,18 +1252,6 @@
                 </button>
               </div>
             </div>
-
-            <!-- Advanced Config: OAuth Client ID -->
-            <details class="text-xs text-muted">
-              <summary style="cursor:pointer;" class="text-primary">⚙️ Configurações da API do Google (Client ID OAuth 2.0)</summary>
-              <div class="mt-2 flex-column gap-1 p-2 border rounded">
-                <label>ID do Cliente OAuth (Google Cloud Console):</label>
-                <div class="flex gap-2">
-                  <input type="text" id="gphotos-client-id-input" placeholder="ex: 123456789-abc.apps.googleusercontent.com" class="form-control" style="font-size:0.75rem;" />
-                  <button type="button" class="btn btn-secondary btn-sm" id="btn-save-gphotos-client-id">Salvar ID</button>
-                </div>
-              </div>
-            </details>
           </div>
 
           <!-- Tab Content: Batch Files Upload -->
